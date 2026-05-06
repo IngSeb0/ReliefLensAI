@@ -12,6 +12,7 @@ from skills.classify_priority import classify_priority
 logger = logging.getLogger(__name__)
 
 _PRIORITY_ORDER = {Priority.P0: 0, Priority.P1: 1, Priority.P2: 2, Priority.P3: 3}
+_DEFAULT_LOCATION_FALLBACK = "Barrio Santa Ana"
 
 
 class TriageAgent:
@@ -85,7 +86,7 @@ class TriageAgent:
             SignalType.UNKNOWN: "Incidente Desconocido",
         }
         label = type_labels.get(signal_type, "Incidente")
-        loc = location.title() if location and location != "unknown" else "Barrio Santa Ana"
+        loc = location.title() if location and location != "unknown" else _DEFAULT_LOCATION_FALLBACK
         return f"{label} — {loc}"
 
     def _make_description(
