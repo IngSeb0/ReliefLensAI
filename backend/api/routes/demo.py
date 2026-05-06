@@ -14,7 +14,7 @@ from services.pipeline import Pipeline
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/demo", tags=["demo"])
 
-_SCENARIO_PATH = Path(__file__).parent.parent.parent.parent / "demo_data" / "scenario_flood_santa_ana.json"
+_SCENARIO_PATH = Path(__file__).resolve().parents[3] / "demo_data" / "scenario_flood_santa_ana.json"
 
 
 def _load_scenario() -> Dict[str, Any]:
