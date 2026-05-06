@@ -1,0 +1,202 @@
+{
+  "scenario_name": "Inundación Barrio Santa Ana",
+  "description": "Simulacro de respuesta a inundación severa en el Barrio Santa Ana. El río Tuy desbordó sus márgenes debido a lluvias torrenciales de 48 horas. Aproximadamente 450 familias afectadas.",
+  "location": {
+    "name": "Barrio Santa Ana",
+    "city": "Caracas",
+    "country": "Venezuela",
+    "coordinates": {"lat": 10.4806, "lon": -66.9036}
+  },
+  "event_time": "2024-01-15T12:00:00Z",
+  "reports": [
+    {
+      "id": "rpt_001",
+      "report_type": "text",
+      "content": "URGENTE: Familia atrapada en techo de casa calle Bolívar #45. Abuela de 78 años con diabetes no puede moverse. Agua llegó al segundo piso. Necesitamos lancha y paramédicos YA!!",
+      "metadata": {"source": "whatsapp", "timestamp": "2024-01-15T14:23:00Z", "sender": "vecino_001", "priority_hint": "P0"}
+    },
+    {
+      "id": "rpt_002",
+      "report_type": "text",
+      "content": "Soy profesora de la Escuela Simón Bolívar. Tenemos 87 niños y 12 adultos refugiados en el segundo piso. El primer piso está completamente inundado. Ya no tenemos comida ni agua potable. El agua sigue subiendo. Por favor envíen ayuda.",
+      "metadata": {"source": "sms", "timestamp": "2024-01-15T14:31:00Z", "sender": "docente_sboli", "priority_hint": "P1"}
+    },
+    {
+      "id": "rpt_003",
+      "report_type": "text",
+      "content": "CRÍTICO: Hombre inconsciente encontrado flotando en Av. Principal cerca de la ferretería Los Andes. Parece tener herida en la cabeza. Está respirando pero no responde. Necesitamos ambulancia de emergencia inmediatamente.",
+      "metadata": {"source": "llamada_radio", "timestamp": "2024-01-15T14:38:00Z", "sender": "patrulla_07", "priority_hint": "P0"}
+    },
+    {
+      "id": "rpt_004",
+      "report_type": "text",
+      "content": "El puente peatonal de la entrada norte al barrio colapsó hace 20 minutos. El único acceso vehicular ahora es por la carretera vieja del norte pero tiene muchos baches y barro. Ambulancias y camiones pesados no pueden pasar. Sugiero coordinar por vía aérea o lancha.",
+      "metadata": {"source": "radio_brigada", "timestamp": "2024-01-15T14:45:00Z", "sender": "lider_brigada_norte", "priority_hint": "P1"}
+    },
+    {
+      "id": "rpt_005",
+      "report_type": "text",
+      "content": "Reportando desde el Centro Comunitario Bolivariano. Tenemos 62 personas evacuadas incluyendo 23 niños menores de 10 años y 8 adultos mayores. Ya se agotó completamente el agua potable. Los alimentos alcanzan para 6 horas más. Solicitamos suministros de emergencia urgentes.",
+      "metadata": {"source": "whatsapp", "timestamp": "2024-01-15T14:52:00Z", "sender": "coordinador_cc", "priority_hint": "P2"}
+    },
+    {
+      "id": "rpt_006",
+      "report_type": "text",
+      "content": "Three people stranded on roof at corner of Calle 5 and Av. Principal. We have been here for 6 hours. One elderly woman has heart condition and needs medication. Water level is about 1.8 meters and still rising slowly. Please send boat rescue.",
+      "metadata": {"source": "whatsapp", "timestamp": "2024-01-15T15:02:00Z", "sender": "resident_eng_001", "priority_hint": "P0"}
+    },
+    {
+      "id": "rpt_007",
+      "report_type": "text",
+      "content": "La subestación eléctrica de la calle Sucre está completamente inundada. Cables de alta tensión en contacto con el agua. Hay riesgo grave de electrocución en toda la zona norte del barrio. Urge corte de energía inmediato y señalización del área.",
+      "metadata": {"source": "radio_defensa_civil", "timestamp": "2024-01-15T15:09:00Z", "sender": "bombero_carlos", "priority_hint": "P1"}
+    },
+    {
+      "id": "rpt_008",
+      "report_type": "text",
+      "content": "Sector Las Palmas: derrumbe parcial del edificio de apartamentos El Mirador. Una pared lateral colapsó. Hay 4 apartamentos comprometidos. Escuchamos voces pidiendo ayuda desde el segundo piso. Se necesita equipo de rescate especializado y evaluación estructural urgente.",
+      "metadata": {"source": "telegram", "timestamp": "2024-01-15T15:17:00Z", "sender": "vecino_laspalmas", "priority_hint": "P1"}
+    },
+    {
+      "id": "rpt_009",
+      "report_type": "text",
+      "content": "Tenemos 15 familias en el techo del Mercado Municipal Santa Ana. Somos aproximadamente 45 personas. Hay una señora embarazada de 8 meses con contracciones. Necesitamos evacuación médica urgente para ella primero. Los demás podemos esperar un poco más.",
+      "metadata": {"source": "whatsapp", "timestamp": "2024-01-15T15:24:00Z", "sender": "familia_mercado", "priority_hint": "P0"}
+    },
+    {
+      "id": "rpt_010",
+      "report_type": "text",
+      "content": "Desaparecido: niño de 7 años, Andrés Rodríguez, con camiseta roja y pantalón azul. Fue visto por última vez en el parque principal a las 12:30pm. Su familia está desesperada. Si alguien lo ve por favor contactar al número 0412-5678901.",
+      "metadata": {"source": "whatsapp_grupo", "timestamp": "2024-01-15T15:31:00Z", "sender": "mama_andres", "priority_hint": "P1"}
+    },
+    {
+      "id": "rpt_011",
+      "report_type": "text",
+      "content": "Desde el sector El Progreso informamos que el nivel del agua comenzó a bajar levemente en las últimas 2 horas. Tenemos a 28 personas en el refugio de la iglesia Nuestra Señora. Todos están bien, sin heridos. Tenemos suficiente comida por ahora pero necesitaremos agua potable mañana.",
+      "metadata": {"source": "radio_comunal", "timestamp": "2024-01-15T15:38:00Z", "sender": "padre_iglesia", "priority_hint": "P3"}
+    },
+    {
+      "id": "rpt_012",
+      "report_type": "text",
+      "content": "La farmacia Santa Ana tiene medicamentos flotando por el agua. Se perdieron insulinas y medicamentos de cadena de frío. Hay al menos 15 pacientes del barrio que necesitan insulina diariamente incluyendo la señora del techo de la calle Bolívar. Solicitar provisión de medicamentos de emergencia.",
+      "metadata": {"source": "telegram", "timestamp": "2024-01-15T15:45:00Z", "sender": "farmacia_santaana", "priority_hint": "P2"}
+    },
+    {
+      "id": "rpt_013",
+      "report_type": "text",
+      "content": "URGENTE: Familia atrapada en techo de casa calle Bolívar #45. Abuela de 78 años con diabetes no puede moverse. Agua llegó al segundo piso. Necesitamos lancha y paramédicos YA!!",
+      "metadata": {"source": "facebook", "timestamp": "2024-01-15T15:52:00Z", "sender": "vecino_002", "priority_hint": "P0", "note": "duplicate_of_rpt_001"}
+    },
+    {
+      "id": "rpt_014",
+      "report_type": "text",
+      "content": "CRÍTICO: Hombre inconsciente encontrado flotando en Av. Principal cerca de la ferretería Los Andes. Parece tener herida en la cabeza. Está respirando pero no responde. Necesitamos ambulancia de emergencia inmediatamente.",
+      "metadata": {"source": "instagram", "timestamp": "2024-01-15T15:58:00Z", "sender": "testigo_anonimo", "priority_hint": "P0", "note": "duplicate_of_rpt_003"}
+    },
+    {
+      "id": "rpt_015",
+      "report_type": "text",
+      "content": "Situación estable en el refugio del Liceo Andrés Bello. 34 personas alojadas, 12 son adultos mayores. Tenemos agua y comida para el día de hoy. Sin heridos ni emergencias médicas activas. Necesitaremos colchonetas y frazadas para esta noche ya que bajan las temperaturas.",
+      "metadata": {"source": "radio_defensa_civil", "timestamp": "2024-01-15T16:05:00Z", "sender": "coord_liceo", "priority_hint": "P3"}
+    },
+    {
+      "id": "rpt_016",
+      "report_type": "audio",
+      "content": "audio_rpt_016_calle_bolivar.mp3",
+      "metadata": {"source": "llamada_emergencia", "timestamp": "2024-01-15T14:25:00Z", "duration_seconds": 18, "transcription_hint": "persona_atrapada_calle_bolivar"}
+    },
+    {
+      "id": "rpt_017",
+      "report_type": "audio",
+      "content": "audio_rpt_017_escuela.mp3",
+      "metadata": {"source": "llamada_emergencia", "timestamp": "2024-01-15T14:35:00Z", "duration_seconds": 23, "transcription_hint": "ninos_escuela_simon_bolivar"}
+    },
+    {
+      "id": "rpt_018",
+      "report_type": "audio",
+      "content": "audio_rpt_018_puente.mp3",
+      "metadata": {"source": "radio_brigada", "timestamp": "2024-01-15T14:48:00Z", "duration_seconds": 19, "transcription_hint": "puente_colapsado_acceso"}
+    },
+    {
+      "id": "rpt_019",
+      "report_type": "audio",
+      "content": "audio_rpt_019_centro_comunitario.mp3",
+      "metadata": {"source": "llamada_emergencia", "timestamp": "2024-01-15T14:55:00Z", "duration_seconds": 24, "transcription_hint": "centro_comunitario_suministros"}
+    },
+    {
+      "id": "rpt_020",
+      "report_type": "audio",
+      "content": "audio_rpt_020_mercado.mp3",
+      "metadata": {"source": "llamada_emergencia", "timestamp": "2024-01-15T15:27:00Z", "duration_seconds": 16, "transcription_hint": "mercado_embarazada_evacuacion"}
+    },
+    {
+      "id": "rpt_021",
+      "report_type": "image",
+      "content": "img_rpt_021_vista_aerea_santaana.jpg",
+      "metadata": {"source": "dron_defensa_civil", "timestamp": "2024-01-15T14:20:00Z", "resolution": "4K", "description_hint": "aerial_flood_overview"}
+    },
+    {
+      "id": "rpt_022",
+      "report_type": "image",
+      "content": "img_rpt_022_calle_bolivar_techo.jpg",
+      "metadata": {"source": "whatsapp", "timestamp": "2024-01-15T14:24:00Z", "description_hint": "family_on_roof_bolivar"}
+    },
+    {
+      "id": "rpt_023",
+      "report_type": "image",
+      "content": "img_rpt_023_escuela_inundada.jpg",
+      "metadata": {"source": "docente_sboli", "timestamp": "2024-01-15T14:33:00Z", "description_hint": "school_shelter_crowded"}
+    },
+    {
+      "id": "rpt_024",
+      "report_type": "image",
+      "content": "img_rpt_024_derrumbe_mirador.jpg",
+      "metadata": {"source": "vecino_laspalmas", "timestamp": "2024-01-15T15:18:00Z", "description_hint": "building_collapse_debris"}
+    },
+    {
+      "id": "rpt_025",
+      "report_type": "image",
+      "content": "img_rpt_025_subestacion_electrica.jpg",
+      "metadata": {"source": "bombero_carlos", "timestamp": "2024-01-15T15:10:00Z", "description_hint": "flooded_electrical_substation"}
+    },
+    {
+      "id": "rpt_026",
+      "report_type": "image",
+      "content": "img_rpt_026_ambulancia_atascada.jpg",
+      "metadata": {"source": "patrulla_07", "timestamp": "2024-01-15T14:40:00Z", "description_hint": "ambulance_blocked_flood"}
+    },
+    {
+      "id": "rpt_027",
+      "report_type": "image",
+      "content": "img_rpt_027_balsa_improvisada.jpg",
+      "metadata": {"source": "vecino_003", "timestamp": "2024-01-15T15:35:00Z", "description_hint": "makeshift_raft_rescue"}
+    },
+    {
+      "id": "rpt_028",
+      "report_type": "image",
+      "content": "img_rpt_028_nino_solo_escuela.jpg",
+      "metadata": {"source": "dron_defensa_civil", "timestamp": "2024-01-15T15:55:00Z", "description_hint": "child_alone_fence_school"}
+    },
+    {
+      "id": "rpt_029",
+      "report_type": "csv",
+      "content": "lat,lon,location_name,status,persons_count,priority\n10.4812,-66.9041,Calle Bolivar 45,atrapados,4,P0\n10.4820,-66.9050,Escuela Simon Bolivar,refugio,99,P1\n10.4795,-66.9028,Av Principal ferreteria,emergencia_medica,1,P0\n10.4808,-66.9033,Centro Comunitario,refugio,62,P2\n10.4801,-66.9043,Calle 5 esquina Av Principal,atrapados,3,P0\n10.4818,-66.9055,Mercado Municipal,atrapados,45,P0\n10.4800,-66.9030,Edificio El Mirador,derrumbe,8,P1\n10.4790,-66.9020,Puente norte,colapsado,0,P1\n10.4815,-66.9048,Subestacion electrica Sucre,peligro_electrico,0,P1\n10.4825,-66.9060,Liceo Andres Bello,refugio_estable,34,P3\n10.4797,-66.9038,Iglesia Nuestra Senora,refugio_estable,28,P3",
+      "metadata": {"source": "sistema_gis_defensa_civil", "timestamp": "2024-01-15T15:00:00Z", "format": "csv_locations"}
+    }
+  ],
+  "expected_outcomes": {
+    "total_reports": 29,
+    "expected_p0_incidents": 4,
+    "expected_p1_incidents": 5,
+    "expected_p2_incidents": 3,
+    "expected_p3_incidents": 2,
+    "duplicates_to_detect": ["rpt_013 duplicates rpt_001", "rpt_014 duplicates rpt_003"],
+    "key_locations": [
+      "Calle Bolivar #45 — familia atrapada, abuela diabetica",
+      "Escuela Simon Bolivar — 87 ninos refugiados",
+      "Av. Principal — emergencia medica hombre inconsciente",
+      "Centro Comunitario — 62 evacuados sin agua",
+      "Mercado Municipal — embarazada con contracciones"
+    ]
+  }
+}
