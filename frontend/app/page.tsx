@@ -1,413 +1,300 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { AlertTriangle, Wifi, WifiOff, RefreshCw, Loader2 } from "lucide-react";
-import { UploadPanel } from "@/components/UploadPanel";
-import { IncidentCard } from "@/components/IncidentCard";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Activity, AlertTriangle, RefreshCw, ShieldCheck, Wifi, WifiOff } from "lucide-react";
 import { AMDPanel } from "@/components/AMDPanel";
+import { IncidentCard } from "@/components/IncidentCard";
 import { StatsBar } from "@/components/StatsBar";
+import { UploadPanel } from "@/components/UploadPanel";
 import { api } from "@/lib/api";
-import type { Incident, CrisisRoomSummary, AMDPerformanceMetric, Priority } from "@/lib/types";
+import type {
+  AMDPerformanceMetric,
+  CrisisRoomSummary,
+  DispatchMessage,
+  Incident,
+  Priority,
+  ResourceRecommendation,
+} from "@/lib/types";
 
-// ---------------------------------------------------------------------------
-// Mock data — used as fallback when backend is unreachable
-// ---------------------------------------------------------------------------
-const MOCK_INCIDENTS: Incident[] = [
-  {
-    id: "inc_001",
-    title: "Personas atrapadas en techo - Calle Insurgentes #45",
-    description:
-      "Familia de 4 personas atrapada en techo por inundación. Agua llega a 1.5m. Necesitan rescate urgente.",
-    priority: "P0",
-    status: "new",
-    location: "Calle Insurgentes #45, Barrio Santa Ana",
-    coordinates: { lat: 19.4326, lon: -99.1332 },
-    affected_people: 4,
-    confidence: 0.95,
-    evidence: [
-      {
-        id: "ev1",
-        modality: "text",
-        description:
-          "WhatsApp: 'Estamos atrapados en el techo, el agua no para de subir'",
-      },
-      {
-        id: "ev2",
-        modality: "image",
-        description:
-          "Imagen: Vista aérea mostrando 4 personas en techo rodeadas de agua",
-      },
-    ],
-    created_at: "2024-01-15T14:23:00Z",
-    human_approved: false,
-  },
-  {
-    id: "inc_002",
-    title: "Adulto mayor con fractura - Centro Comunitario",
-    description:
-      "Hombre de 70 años con posible fractura de cadera por caída. Requiere atención médica urgente.",
-    priority: "P0",
-    status: "acknowledged",
-    location: "Centro Comunitario, Av. Principal",
-    affected_people: 1,
-    confidence: 0.92,
-    evidence: [
-      {
-        id: "ev3",
-        modality: "audio",
-        description: "Audio: Voz de mujer reportando adulto mayor caído",
-      },
-    ],
-    created_at: "2024-01-15T14:31:00Z",
-    human_approved: false,
-  },
-  {
-    id: "inc_003",
-    title: "Edificio con daños estructurales - Av. Libertad 223",
-    description:
-      "Edificio de 3 pisos con grietas visibles. 12 familias evacuadas preventivamente.",
-    priority: "P1",
-    status: "new",
-    location: "Av. Libertad 223, Barrio Santa Ana",
-    affected_people: 12,
-    confidence: 0.88,
-    evidence: [
-      {
-        id: "ev4",
-        modality: "image",
-        description:
-          "Imagen: Grietas en fachada del edificio, columnas visiblemente dañadas",
-      },
-    ],
-    created_at: "2024-01-15T14:45:00Z",
-    human_approved: false,
-  },
-  {
-    id: "inc_004",
-    title: "Necesidad de agua potable - Sector Norte",
-    description:
-      "30 familias sin agua potable. Red municipal contaminada por inundación.",
-    priority: "P2",
-    status: "new",
-    location: "Sector Norte, Barrio Santa Ana",
-    affected_people: 30,
-    confidence: 0.85,
-    evidence: [
-      {
-        id: "ev5",
-        modality: "csv",
-        description:
-          "CSV: Múltiples reportes del sector norte sobre contaminación del agua",
-      },
-    ],
-    created_at: "2024-01-15T15:00:00Z",
-    human_approved: false,
-  },
-  {
-    id: "inc_005",
-    title: "Zona segura establecida - Escuela Primaria",
-    description:
-      "Escuela primaria habilitada como albergue temporal. Capacidad para 150 personas.",
-    priority: "P3",
-    status: "resolved",
-    location: "Escuela Primaria, Calle Flores",
-    affected_people: 85,
-    confidence: 0.98,
-    evidence: [
-      {
-        id: "ev6",
-        modality: "text",
-        description:
-          "Mensaje: La escuela está abierta y hay voluntarios atendiendo",
-      },
-    ],
-    created_at: "2024-01-15T14:10:00Z",
-    human_approved: true,
-  },
-];
-
-const MOCK_AMD_METRICS: AMDPerformanceMetric = {
-  gpu_utilization: 78.5,
-  memory_used_gb: 245.3,
-  memory_total_gb: 304.0,
-  tokens_per_second: 847.2,
-  requests_processed: 142,
-  avg_latency_ms: 284.5,
-  model_name: "Qwen/Qwen2.5-72B-Instruct",
-  rocm_version: "6.1.0",
-};
-
-// ---------------------------------------------------------------------------
-// Priority filter button
-// ---------------------------------------------------------------------------
 type PriorityFilter = "ALL" | Priority;
 
-const FILTER_OPTS: { label: string; value: PriorityFilter; color: string }[] =
-  [
-    { label: "Todos", value: "ALL", color: "bg-gray-700 text-gray-300" },
-    { label: "P0", value: "P0", color: "bg-red-700/80 text-red-200" },
-    { label: "P1", value: "P1", color: "bg-orange-700/80 text-orange-200" },
-    { label: "P2", value: "P2", color: "bg-yellow-700/80 text-yellow-200" },
-    { label: "P3", value: "P3", color: "bg-green-700/80 text-green-200" },
-  ];
+const FILTERS: PriorityFilter[] = ["ALL", "P0", "P1", "P2", "P3"];
 
-// ---------------------------------------------------------------------------
-// Main page
-// ---------------------------------------------------------------------------
 export default function CrisisRoomPage() {
-  const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [amdMetrics, setAmdMetrics] = useState<AMDPerformanceMetric | null>(null);
-  const [amdLoading, setAmdLoading] = useState(false);
-  const [processing, setProcessing] = useState(false);
-  const [demoMode, setDemoMode] = useState(false);
   const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
-  const [filter, setFilter] = useState<PriorityFilter>("ALL");
+  const [processing, setProcessing] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [scenarioName, setScenarioName] = useState<string>("Sin sesión activa");
+  const [summary, setSummary] = useState<CrisisRoomSummary | null>(null);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [resources, setResources] = useState<ResourceRecommendation[]>([]);
+  const [dispatchMessages, setDispatchMessages] = useState<DispatchMessage[]>([]);
+  const [amdMetrics, setAmdMetrics] = useState<AMDPerformanceMetric | null>(null);
+  const [filter, setFilter] = useState<PriorityFilter>("ALL");
+  const [lastError, setLastError] = useState<string | null>(null);
 
-  // ---- stats ----
-  const total = incidents.length;
-  const p0 = incidents.filter((i) => i.priority === "P0").length;
-  const p1 = incidents.filter((i) => i.priority === "P1").length;
-  const p2 = incidents.filter((i) => i.priority === "P2").length;
-  const p3 = incidents.filter((i) => i.priority === "P3").length;
-
-  const filtered =
-    filter === "ALL" ? incidents : incidents.filter((i) => i.priority === filter);
-
-  // ---- health check on mount ----
-  useEffect(() => {
-    api
-      .getHealth()
-      .then(() => setBackendOnline(true))
-      .catch(() => setBackendOnline(false));
+  const fetchHealth = useCallback(async () => {
+    try {
+      await api.getHealth();
+      setBackendOnline(true);
+    } catch {
+      setBackendOnline(false);
+    }
   }, []);
 
-  // ---- fetch AMD metrics (with auto-refresh every 5s) ----
-  const fetchAMD = useCallback(async () => {
-    setAmdLoading(true);
+  const fetchAmdMetrics = useCallback(async () => {
     try {
       const res = await api.getAMDMetrics();
       setAmdMetrics(res.data as AMDPerformanceMetric);
     } catch {
-      setAmdMetrics(MOCK_AMD_METRICS);
-    } finally {
-      setAmdLoading(false);
+      setAmdMetrics(null);
     }
+  }, []);
+
+  const fetchIncidents = useCallback(async (sid: string) => {
+    const res = await api.getIncidents(sid);
+    setIncidents(Array.isArray(res.data) ? (res.data as Incident[]) : []);
   }, []);
 
   useEffect(() => {
-    fetchAMD();
-    const id = setInterval(fetchAMD, 5000);
-    return () => clearInterval(id);
-  }, [fetchAMD]);
+    fetchHealth();
+    fetchAmdMetrics();
+    const interval = setInterval(fetchAmdMetrics, 5000);
+    return () => clearInterval(interval);
+  }, [fetchAmdMetrics, fetchHealth]);
 
-  // ---- fetch incidents for a session ----
-  const fetchIncidents = useCallback(async (sid?: string) => {
-    try {
-      const res = await api.getIncidents(sid);
-      const data = res.data;
-      if (Array.isArray(data)) {
-        setIncidents(data as Incident[]);
-      } else if (data?.incidents) {
-        setIncidents(data.incidents as Incident[]);
+  const filteredIncidents = useMemo(
+    () => (filter === "ALL" ? incidents : incidents.filter((incident) => incident.priority === filter)),
+    [filter, incidents],
+  );
+
+  const counts = useMemo(
+    () => ({
+      total: incidents.length,
+      p0: incidents.filter((incident) => incident.priority === "P0").length,
+      p1: incidents.filter((incident) => incident.priority === "P1").length,
+      p2: incidents.filter((incident) => incident.priority === "P2").length,
+      p3: incidents.filter((incident) => incident.priority === "P3").length,
+    }),
+    [incidents],
+  );
+
+  const resourcesByIncident = useMemo(() => {
+    const map = new Map<string, ResourceRecommendation[]>();
+    for (const resource of resources) {
+      const bucket = map.get(resource.incident_id) ?? [];
+      bucket.push(resource);
+      map.set(resource.incident_id, bucket);
+    }
+    return map;
+  }, [resources]);
+
+  const dispatchByIncident = useMemo(() => {
+    const map = new Map<string, DispatchMessage>();
+    for (const message of dispatchMessages) {
+      if (!map.has(message.incident_id)) {
+        map.set(message.incident_id, message);
       }
-    } catch {
-      // keep current incidents
     }
-  }, []);
+    return map;
+  }, [dispatchMessages]);
 
-  // ---- demo results handler ----
-  function handleResults(summary: CrisisRoomSummary, isDemo: boolean) {
-    setDemoMode(isDemo);
-    setSessionId(summary.session_id);
-    if (summary.incidents && summary.incidents.length > 0) {
-      setIncidents(summary.incidents);
-    } else if (isDemo) {
-      setIncidents(MOCK_INCIDENTS);
-    } else {
-      fetchIncidents(summary.session_id);
-    }
-    if (summary.amd_metrics) {
-      setAmdMetrics(summary.amd_metrics);
-    }
-  }
-
-  function handleApprove(id: string) {
-    setIncidents((prev) =>
-      prev.map((inc) =>
-        inc.id === id ? { ...inc, human_approved: true } : inc
-      )
-    );
+  function handleResults(nextSummary: CrisisRoomSummary) {
+    setSummary(nextSummary);
+    setSessionId(nextSummary.session_id);
+    setScenarioName(nextSummary.scenario_name);
+    setResources(nextSummary.resource_recommendations ?? []);
+    setDispatchMessages(nextSummary.dispatch_messages ?? []);
+    setAmdMetrics(nextSummary.amd_metrics ?? null);
+    setLastError(null);
+    fetchIncidents(nextSummary.session_id).catch(() => {
+      setLastError("No se pudo refrescar la lista de incidentes de la sesión.");
+    });
   }
 
   async function handleRefresh() {
+    await fetchHealth();
+    await fetchAmdMetrics();
     if (sessionId) {
-      await fetchIncidents(sessionId);
+      try {
+        await fetchIncidents(sessionId);
+      } catch {
+        setLastError("No se pudo actualizar la sesión actual.");
+      }
     }
-    fetchAMD();
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col">
-      {/* ------------------------------------------------------------------ */}
-      {/* Header                                                               */}
-      {/* ------------------------------------------------------------------ */}
-      <header className="sticky top-0 z-50 bg-gray-950/95 backdrop-blur border-b border-gray-800/60 px-4 py-3">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
+    <div className="min-h-screen bg-gray-950 text-white">
+      <header className="border-b border-gray-800 bg-gray-950/95 backdrop-blur">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-4">
           <div className="flex items-center gap-3">
-            <AlertTriangle className="w-6 h-6 text-red-500 animate-pulse shrink-0" />
-            <h1 className="text-lg font-extrabold tracking-tight text-white">
-              🚨 ReliefLensAI{" "}
-              <span className="text-gray-400 font-normal">— Crisis Room</span>
-            </h1>
+            <div className="rounded-lg border border-red-900/60 bg-red-950/40 p-2">
+              <AlertTriangle className="h-5 w-5 text-red-400" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-gray-500">ReliefLens AI</p>
+              <h1 className="text-lg font-semibold text-white">Crisis Room</h1>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 text-xs">
-            {demoMode && (
-              <span className="flex items-center gap-1.5 bg-yellow-900/60 border border-yellow-700/50 text-yellow-300 px-2.5 py-1 rounded-full font-semibold">
-                🎭 Demo Mode
-              </span>
-            )}
+          <div className="flex items-center gap-2">
             <span
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${
-                backendOnline === true
-                  ? "bg-green-900/40 text-green-400 border border-green-800/40"
+              className={`inline-flex items-center gap-2 rounded-md border px-3 py-2 text-xs ${
+                backendOnline
+                  ? "border-emerald-900/60 bg-emerald-950/40 text-emerald-300"
                   : backendOnline === false
-                    ? "bg-red-900/40 text-red-400 border border-red-800/40"
-                    : "bg-gray-800 text-gray-400"
+                    ? "border-red-900/60 bg-red-950/40 text-red-300"
+                    : "border-gray-800 bg-gray-900 text-gray-400"
               }`}
             >
-              {backendOnline === true ? (
-                <Wifi className="w-3 h-3" />
-              ) : (
-                <WifiOff className="w-3 h-3" />
-              )}
-              {backendOnline === true
-                ? "Backend Online"
-                : backendOnline === false
-                  ? "Backend Offline"
-                  : "Checking…"}
+              {backendOnline ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
+              {backendOnline ? "Backend online" : backendOnline === false ? "Backend offline" : "Verificando"}
             </span>
-            <span className="bg-orange-950/60 border border-orange-700/40 text-orange-400 px-2.5 py-1 rounded-full font-bold">
+            <span className="inline-flex items-center gap-2 rounded-md border border-orange-900/60 bg-orange-950/40 px-3 py-2 text-xs text-orange-300">
+              <Activity className="h-3.5 w-3.5" />
               AMD MI300X
             </span>
             <button
               onClick={handleRefresh}
-              className="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1 rounded-full transition-colors"
+              className="inline-flex items-center gap-2 rounded-md border border-gray-800 bg-gray-900 px-3 py-2 text-xs text-gray-300 transition-colors hover:bg-gray-800"
             >
-              <RefreshCw className="w-3 h-3" />
+              <RefreshCw className="h-3.5 w-3.5" />
               Refresh
             </button>
           </div>
         </div>
       </header>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Main layout                                                          */}
-      {/* ------------------------------------------------------------------ */}
-      <main className="flex-1 max-w-[1600px] mx-auto w-full px-4 py-6 flex gap-6">
-        {/* ---- Left panel (1/3) ---- */}
-        <aside className="w-80 lg:w-96 shrink-0 flex flex-col gap-5">
-          {/* Upload */}
-          <section className="bg-gray-900 border border-gray-700/60 rounded-xl p-4">
-            <h2 className="text-sm font-bold text-gray-200 mb-4 flex items-center gap-2">
-              <span>📂</span> Cargar Reporte
-            </h2>
-            <UploadPanel
-              onResults={handleResults}
-              onProcessing={setProcessing}
-              processing={processing}
-            />
+      <main className="mx-auto grid max-w-[1600px] gap-6 px-4 py-6 xl:grid-cols-[360px_minmax(0,1fr)_340px]">
+        <div className="space-y-4">
+          <section className="rounded-xl border border-gray-800 bg-gray-900 p-4">
+            <h2 className="text-sm font-semibold text-white">Ingesta</h2>
+            <p className="mt-1 text-sm text-gray-400">Demo guiada y prueba rápida para validar el backend.</p>
+            <div className="mt-4">
+              <UploadPanel
+                processing={processing}
+                onProcessing={setProcessing}
+                onError={setLastError}
+                onResults={(nextSummary) => handleResults(nextSummary)}
+              />
+            </div>
           </section>
 
-          {/* Processing status */}
-          {processing && (
-            <div className="bg-blue-950/60 border border-blue-700/40 rounded-xl p-4 flex items-center gap-3">
-              <Loader2 className="w-5 h-5 text-blue-400 animate-spin shrink-0" />
+          <section className="rounded-xl border border-gray-800 bg-gray-900 p-4">
+            <h2 className="text-sm font-semibold text-white">Sesión activa</h2>
+            <dl className="mt-3 space-y-3 text-sm">
               <div>
-                <p className="text-sm font-semibold text-blue-200">
-                  Procesando pipeline…
-                </p>
-                <p className="text-xs text-blue-400 mt-0.5">
-                  Clasificando incidentes con AMD MI300X
+                <dt className="text-gray-500">Escenario</dt>
+                <dd className="mt-1 text-gray-200">{scenarioName}</dd>
+              </div>
+              <div>
+                <dt className="text-gray-500">Session ID</dt>
+                <dd className="mt-1 break-all font-mono text-xs text-gray-300">{sessionId ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-gray-500">Estado</dt>
+                <dd className="mt-1 text-gray-200">{summary?.status ?? "idle"}</dd>
+              </div>
+              <div>
+                <dt className="text-gray-500">Tiempo de proceso</dt>
+                <dd className="mt-1 text-gray-200">
+                  {summary ? `${summary.processing_time_seconds.toFixed(2)} s` : "—"}
+                </dd>
+              </div>
+            </dl>
+          </section>
+        </div>
+
+        <div className="space-y-6">
+          <StatsBar total={counts.total} p0={counts.p0} p1={counts.p1} p2={counts.p2} p3={counts.p3} />
+
+          <section className="rounded-xl border border-gray-800 bg-gray-900 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-white">Operational Incidents</h2>
+                <p className="mt-1 text-sm text-gray-400">
+                  {filteredIncidents.length} visibles de {incidents.length} incidentes consolidados.
                 </p>
               </div>
+              <div className="flex items-center gap-2">
+                {FILTERS.map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => setFilter(option)}
+                    className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      filter === option ? "bg-white text-gray-950" : "bg-gray-950 text-gray-400 hover:bg-gray-800 hover:text-white"
+                    }`}
+                  >
+                    {option === "ALL" ? "Todos" : option}
+                  </button>
+                ))}
+              </div>
             </div>
-          )}
 
-          {/* Stats */}
-          {incidents.length > 0 && (
-            <section className="bg-gray-900 border border-gray-700/60 rounded-xl p-4">
-              <h2 className="text-sm font-bold text-gray-200 mb-3 flex items-center gap-2">
-                <span>📊</span> Resumen
-              </h2>
-              <StatsBar
-                total={total}
-                p0={p0}
-                p1={p1}
-                p2={p2}
-                p3={p3}
-              />
-            </section>
-          )}
+            {lastError ? (
+              <div className="mt-4 rounded-lg border border-red-900/60 bg-red-950/30 px-3 py-2 text-sm text-red-300">
+                {lastError}
+              </div>
+            ) : null}
 
-          {/* AMD Panel */}
-          <AMDPanel metrics={amdMetrics} loading={amdLoading} />
-        </aside>
-
-        {/* ---- Center panel (2/3) ---- */}
-        <section className="flex-1 min-w-0 flex flex-col gap-4">
-          {/* Toolbar */}
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              🗂️ Incidentes
-              {incidents.length > 0 && (
-                <span className="text-xs font-normal text-gray-400">
-                  ({filtered.length} / {total})
-                </span>
+            <div className="mt-4 space-y-3">
+              {filteredIncidents.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-gray-800 bg-gray-950/40 px-6 py-12 text-center">
+                  <p className="text-sm font-medium text-gray-300">Sin incidentes cargados</p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Ejecuta la demo o procesa mensajes de texto desde el panel izquierdo.
+                  </p>
+                </div>
+              ) : (
+                filteredIncidents.map((incident) => (
+                  <IncidentCard
+                    key={incident.id}
+                    incident={incident}
+                    resources={resourcesByIncident.get(incident.id) ?? []}
+                    dispatch={dispatchByIncident.get(incident.id) ?? null}
+                    onApprove={(id) =>
+                      setIncidents((prev) =>
+                        prev.map((current) => (current.id === id ? { ...current, human_approved: true } : current)),
+                      )
+                    }
+                  />
+                ))
               )}
-            </h2>
-            <div className="flex items-center gap-1.5">
-              {FILTER_OPTS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setFilter(opt.value)}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                    filter === opt.value
-                      ? `${opt.color} ring-1 ring-white/20`
-                      : "bg-gray-800 text-gray-400 hover:bg-gray-700"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
             </div>
-          </div>
+          </section>
+        </div>
 
-          {/* Empty state */}
-          {incidents.length === 0 && !processing && (
-            <div className="flex-1 flex flex-col items-center justify-center text-center py-24 text-gray-500">
-              <AlertTriangle className="w-12 h-12 mb-4 opacity-30" />
-              <p className="text-base font-medium mb-1">Sin incidentes</p>
-              <p className="text-sm">
-                Cargue un reporte o ejecute el Demo Santa Ana
-              </p>
+        <div className="space-y-4">
+          <AMDPanel metrics={amdMetrics} />
+
+          <section className="rounded-xl border border-gray-800 bg-gray-900 p-4">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-emerald-400" />
+              <h2 className="text-sm font-semibold text-white">Guardrails</h2>
             </div>
-          )}
+            <ul className="mt-3 space-y-2 text-sm text-gray-400">
+              <li>Los incidentes P0 y P1 requieren aprobación humana antes de despacho.</li>
+              <li>La evidencia multimodal se mantiene vinculada al incidente consolidado.</li>
+              <li>Este sistema apoya coordinación; no sustituye respuesta médica ni emergencias oficiales.</li>
+            </ul>
+          </section>
 
-          {/* Incident cards */}
-          <div className="space-y-3">
-            {filtered.map((incident) => (
-              <IncidentCard
-                key={incident.id}
-                incident={incident}
-                onApprove={handleApprove}
-              />
-            ))}
-          </div>
-        </section>
+          <section className="rounded-xl border border-gray-800 bg-gray-900 p-4">
+            <h2 className="text-sm font-semibold text-white">Dispatch readiness</h2>
+            <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
+                <dt className="text-gray-500">Mensajes listos</dt>
+                <dd className="mt-1 font-mono text-xl text-white">{dispatchMessages.length}</dd>
+              </div>
+              <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
+                <dt className="text-gray-500">Recursos activos</dt>
+                <dd className="mt-1 font-mono text-xl text-white">{resources.length}</dd>
+              </div>
+            </dl>
+          </section>
+        </div>
       </main>
     </div>
   );
 }
-

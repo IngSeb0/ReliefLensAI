@@ -1,11 +1,6 @@
 export type Priority = "P0" | "P1" | "P2" | "P3";
 
-export type IncidentStatus =
-  | "new"
-  | "acknowledged"
-  | "in_progress"
-  | "resolved"
-  | "cancelled";
+export type IncidentStatus = "new" | "acknowledged" | "in_progress" | "resolved";
 
 export interface Coordinates {
   lat: number;
@@ -14,71 +9,77 @@ export interface Coordinates {
 
 export interface EvidenceItem {
   id: string;
-  modality: "text" | "image" | "audio" | "csv" | "video";
+  report_id?: string;
+  modality: "text" | "image" | "audio" | "csv" | "location" | "video";
   description: string;
-  raw_content?: string;
-  confidence?: number;
+  file_path?: string | null;
   timestamp?: string;
 }
 
 export interface ResourceRecommendation {
+  id: string;
+  incident_id: string;
   resource_type: string;
-  quantity: number;
+  description: string;
+  quantity?: number | null;
   urgency: string;
-  notes?: string;
+  rationale: string;
 }
 
 export interface DispatchMessage {
-  message_id?: string;
+  id: string;
   incident_id: string;
-  recipient_unit: string;
-  message_text: string;
-  priority: Priority;
-  generated_at?: string;
+  channel: string;
+  message: string;
+  brigade_target?: string | null;
+  created_at?: string;
+  approved?: boolean;
 }
 
 export interface Incident {
   id: string;
+  session_id?: string;
   title: string;
   description: string;
   priority: Priority;
   status: IncidentStatus;
-  location: string;
-  coordinates?: Coordinates;
-  affected_people: number;
-  confidence: number;
+  signal_ids?: string[];
   evidence: EvidenceItem[];
-  resource_recommendations?: ResourceRecommendation[];
-  dispatch_message?: DispatchMessage;
+  location?: string | null;
+  coordinates?: Coordinates | null;
+  affected_people?: number | null;
+  confidence: number;
   created_at: string;
   updated_at?: string;
   human_approved: boolean;
-  operator_notes?: string;
-  session_id?: string;
+  notes?: string | null;
 }
 
 export interface AMDPerformanceMetric {
+  timestamp?: string;
   gpu_utilization: number;
   memory_used_gb: number;
   memory_total_gb: number;
   tokens_per_second: number;
   requests_processed: number;
   avg_latency_ms: number;
-  model_name?: string;
-  rocm_version?: string;
-  timestamp?: string;
+  model_name: string;
+  rocm_version?: string | null;
+  power_watts?: number | null;
 }
 
 export interface CrisisRoomSummary {
   session_id: string;
+  scenario_name: string;
+  total_reports: number;
+  total_signals: number;
   total_incidents: number;
-  p0_count: number;
-  p1_count: number;
-  p2_count: number;
-  p3_count: number;
-  incidents: Incident[];
-  amd_metrics?: AMDPerformanceMetric;
-  processing_time_ms?: number;
-  created_at?: string;
-  status?: string;
+  incidents_by_priority: Record<string, number>;
+  critical_incidents: Incident[];
+  resource_recommendations: ResourceRecommendation[];
+  dispatch_messages: DispatchMessage[];
+  amd_metrics?: AMDPerformanceMetric | null;
+  processing_time_seconds: number;
+  created_at: string;
+  status: string;
 }

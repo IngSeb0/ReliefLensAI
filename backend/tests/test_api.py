@@ -1,14 +1,35 @@
 from __future__ import annotations
+import os
+import sys
+import uuid
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
 
 @pytest.fixture(scope="module")
 def client():
-    import sys
-    import os
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    backend_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, backend_root)
+
+    storage_path = Path(backend_root) / "test_artifacts" / f"storage-{uuid.uuid4()}"
+    storage_path.mkdir(parents=True, exist_ok=True)
+
+    os.environ["STORAGE_PATH"] = str(storage_path)
+    os.environ["DEMO_MODE"] = "true"
+    os.environ["DEBUG"] = "false"
+
+    from core.config import get_settings
+    from services.storage import get_storage
+    from services.vllm_client import get_vllm_client
+
+    get_settings.cache_clear()
+    get_storage.cache_clear()
+    get_vllm_client.cache_clear()
+
     from main import app
+
     with TestClient(app) as c:
         yield c
 

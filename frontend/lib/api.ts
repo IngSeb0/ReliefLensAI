@@ -6,6 +6,7 @@ export const api = {
   getHealth: () => axios.get(`${BASE_URL}/health`),
   runDemo: () => axios.post(`${BASE_URL}/api/demo/run`),
   getDemoScenario: () => axios.get(`${BASE_URL}/api/demo/scenario`),
+  processBatch: (payload: unknown) => axios.post(`${BASE_URL}/api/reports/process`, payload),
   getIncidents: (sessionId?: string) =>
     axios.get(`${BASE_URL}/api/incidents`, {
       params: sessionId ? { session_id: sessionId } : {},
