@@ -3,6 +3,7 @@ export type Severity = "low" | "medium" | "high" | "critical";
 export type LocationSource = "browser_geolocation" | "map_click" | "image_exif" | "text_location" | "unknown";
 
 export type IncidentStatus = "new" | "acknowledged" | "in_progress" | "resolved";
+export type AdminIncidentStatus = "received" | "new" | "triaged" | "in_review" | "dispatched" | "resolved" | "rejected";
 
 export interface Coordinates {
   lat: number;
@@ -116,6 +117,11 @@ export interface EvidencePayload {
 
 export interface DemoIncident {
   incident_id: string;
+  tracking_code?: string;
+  status?: AdminIncidentStatus;
+  reviewed?: boolean;
+  admin_notes?: string;
+  assigned_team?: string;
   incident_type: string;
   title: string;
   summary: string;
@@ -129,7 +135,27 @@ export interface DemoIncident {
   human_review_required: boolean;
   safety_note: string;
   updated_at?: string;
+  created_at?: string;
   evidence_count?: number;
 }
 
 export type ImageAnalysisResponse = DemoIncident;
+
+export interface AdminLoginResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
+export interface AdminMeResponse {
+  username: string;
+  role: string;
+}
+
+export interface AdminTelemetryResponse {
+  health: string;
+  demo_mode: boolean;
+  app_env: string;
+  amd_metrics?: AMDPerformanceMetric | null;
+  rocm_status?: string | null;
+}

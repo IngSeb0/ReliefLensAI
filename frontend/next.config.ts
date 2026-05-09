@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 
+const backendOrigin = process.env.BACKEND_ORIGIN || "http://localhost:8080";
+
 const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname),
@@ -9,7 +11,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/backend/:path*",
-        destination: "http://134.199.203.136:8080/:path*",
+        destination: `${backendOrigin}/:path*`,
       },
     ];
   },
