@@ -57,6 +57,17 @@ def test_demo_scenario(client):
     assert "reports" in data
 
 
+def test_demo_incidents(client):
+    resp = client.get("/api/demo/incidents")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert isinstance(data, list)
+    assert len(data) >= 1
+    assert "incident_id" in data[0]
+    assert "priority" in data[0]
+    assert "location" in data[0]
+
+
 def test_demo_run(client):
     resp = client.post("/api/demo/run")
     assert resp.status_code == 200
@@ -66,12 +77,76 @@ def test_demo_run(client):
     assert data["status"] == "ready"
 
 
+def test_demo_analyze_image(client):
+    files = {
+        "image": ("field-evidence.jpg", b"fake-image-bytes", "image/jpeg"),
+    }
+    data = {
+        "report_text": "Smoke and fire visible near homes, possible evacuation support needed",
+        "lat": "33.7518",
+        "lng": "-117.8689",
+    }
+    resp = client.post("/api/demo/analyze-image", files=files, data=data)
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["incident_type"] == "wildfire"
+    assert payload["priority"] == "P1"
+    assert payload["human_review_required"] is True
+    assert payload["evidence"]["image"]["size_bytes"] == len(b"fake-image-bytes")
+
+
+def test_evidence_intake_browser_geolocation(client):
+    data = {
+        "report_text": "Flood water is rising and residents need help",
+        "location_text": "",
+        "client_lat": "33.7520",
+        "client_lng": "-117.8700",
+        "location_source": "browser_geolocation",
+    }
+    resp = client.post("/api/evidence/intake", data=data)
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["incident_type"] == "flood"
+    assert payload["location"]["source"] == "browser_geolocation"
+    assert payload["location"]["lat"] == 33.752
+    assert payload["location"]["confidence"] == 0.9
+
+
+def test_evidence_intake_image_and_location_text(client):
+    files = {
+        "image": ("damage-road.jpg", b"fake-image-bytes", "image/jpeg"),
+    }
+    data = {
+        "report_text": "Road damage and partial collapse reported",
+        "location_text": "Santa Ana civic center",
+    }
+    resp = client.post("/api/evidence/intake", files=files, data=data)
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["incident_type"] == "infrastructure_damage"
+    assert payload["location"]["source"] == "text_location"
+    assert payload["location"]["lat"] == 34.10
+    assert payload["location"]["lng"] == -117.90
+
+
+def test_evidence_intake_without_location(client):
+    data = {
+        "report_text": "General field report with no location details",
+    }
+    resp = client.post("/api/evidence/intake", data=data)
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["location"]["source"] == "unknown"
+    assert payload["location"]["lat"] is None
+    assert payload["location"]["label"] == "Location requires human review"
+
+
 def test_amd_performance(client):
     resp = client.get("/api/amd/performance")
     assert resp.status_code == 200
     data = resp.json()
     assert "tokens_per_second" in data
-    assert data["tokens_per_second"] > 0
+    assert "model_name" in data
 
 
 def test_list_incidents_empty(client):

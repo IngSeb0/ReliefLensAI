@@ -1,139 +1,137 @@
 # ReliefLens AI
 
-ReliefLens AI is a multimodal, human-in-the-loop disaster triage system built for the AMD Developer Hackathon.
+ReliefLens AI is a multimodal, human-in-the-loop emergency triage demo built for the AMD Developer Hackathon. It accepts field evidence such as text, image uploads, optional audio, browser location, map-selected location, and textual place references, then produces prioritized incidents with recommended resources and operational explanations.
 
-It ingests chaotic field reports such as text messages, audio, images, and CSV location hints, then turns them into:
+## Public demo
 
-- consolidated incidents
-- P0 / P1 / P2 / P3 priority labels
-- linked evidence
-- recommended resources
-- dispatch-ready messages
-- AMD performance telemetry
+- Hugging Face Space frontend: `https://lablab-ai-amd-developer-hackathon-relieflens-frontend.hf.space`
+- AMD FastAPI backend: `http://134.199.203.136:8080`
 
-## Stack
+## What the system does
 
-- Backend: FastAPI
-- Frontend: Next.js
-- AI serving: vLLM OpenAI-compatible server
-- GPU target: AMD Instinct MI300X
-- Runtime: ROCm
+- Ingests image, text, optional audio, and location hints
+- Resolves location from the best available source without inventing exact coordinates
+- Produces prioritized incidents with severity, findings, and recommended resources
+- Shows a crisis operations dashboard with a live queue, incident map, and AMD telemetry
 
-## Repo layout
+## Location inference model
 
-```text
-backend/     FastAPI API, agents, skills, schemas, tests
-frontend/    Next.js crisis room UI
-demo_data/   Santa Ana demo scenario
-docs/        deployment notes
-scripts/     local run and smoke-test scripts
-```
+ReliefLens does not pretend that a photo alone can reveal exact location. Location is resolved in this order:
 
-## Quickstart
+1. Browser geolocation, if the user shares it
+2. Image GPS EXIF, if present
+3. Textual location hints such as `Santa Ana`
+4. Manual correction through map click
+5. `Location requires human review` when evidence is insufficient
 
-### 1. Local setup
+If there is no browser location, no EXIF GPS, and no usable text location, the incident stays unresolved and requires human review.
 
-Windows PowerShell:
+## Safety
 
-```powershell
-.\scripts\setup_backend.ps1
-.\scripts\setup_frontend.ps1
-```
+- Synthetic demo data only
+- Human-in-the-loop required
+- Not connected to emergency services
+- Not for real-world dispatch
+- AI suggestions are advisory only
 
-Linux/macOS:
+## Demo mode vs future multimodal mode
 
-```bash
-bash scripts/setup.sh
-cd frontend && npm install
-```
+Current behavior uses deterministic, rule-based fallback analysis. It does not claim real computer vision or real audio transcription unless those models are explicitly connected later.
 
-### 2. Run backend
+Current fallback behavior:
 
-Windows PowerShell:
+- Text, filenames, and location hints drive incident classification
+- Audio files are accepted but returned as `received_not_transcribed`
+- Images are inspected only for metadata and optional EXIF GPS
 
-```powershell
-.\scripts\run_backend.ps1
-```
+Future mode can plug in:
 
-Linux/macOS:
+- multimodal vision models on AMD
+- ASR for audio transcription
+- stronger geocoding and entity extraction
+- richer dispatch planning
 
-```bash
-bash scripts/run_backend.sh
-```
+## Architecture
 
-### 3. Run frontend
+Hugging Face Docker Space -> Next.js frontend -> `/backend` rewrite proxy -> AMD FastAPI backend -> ROCm / MI300X / vLLM
 
-Windows PowerShell:
+The browser does not call `localhost:8080`, `127.0.0.1:8080`, or the AMD public IP directly from client-side code. Frontend API requests use `/backend`, and Next.js rewrites that path to the backend.
 
-```powershell
-.\scripts\run_frontend.ps1 -Mode dev -Port 3000
-```
+## Frontend evidence flow
 
-Linux/macOS:
+The evidence intake panel supports:
 
-```bash
-MODE=dev PORT=3000 bash scripts/run_frontend.sh
-```
+- image upload
+- optional audio upload
+- `What is happening?`
+- `Where is this happening?`
+- `Use my current location`
+- map click to adjust or set location
+- `Analyze Evidence`
 
-### 4. Smoke test
+## Backend endpoints
 
-With backend running on `http://127.0.0.1:8080`:
+- `GET /health`
+- `GET /api/demo/incidents`
+- `GET /api/demo/scenario`
+- `POST /api/demo/run`
+- `POST /api/evidence/intake`
+- `POST /api/demo/analyze-image`
+- `GET /api/amd/performance`
 
-```powershell
-python scripts/smoke_test_backend.py
-```
+## Local development
 
-## Demo flow
-
-1. Start backend
-2. Start frontend
-3. Open `http://localhost:3000`
-4. Run `Demo Santa Ana`
-5. Review incidents, resources, dispatch messages, and AMD metrics
-
-## Environment
-
-Copy `backend/.env.example` to `backend/.env` and set:
-
-- `VLLM_BASE_URL`
-- `VLLM_API_KEY`
-- `VLLM_MODEL`
-- `DEMO_MODE`
-- `CORS_ORIGINS`
-
-For local-only development, `backend/.venv`, `frontend/node_modules`, `backend/.deps`, `backend/.testdeps`, `.env`, and generated `backend/data/*.json` stay on disk but are ignored by Git.
-
-## Tests
-
-Windows PowerShell:
-
-```powershell
-cd backend
-.\.venv\Scripts\python -m pytest tests -v
-```
-
-Linux/macOS:
+### Backend
 
 ```bash
 cd backend
 python -m pytest tests -v
+python -m uvicorn main:app --host 0.0.0.0 --port 8080
 ```
 
-## Deployment
-
-See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for the AMD Developer Cloud and Hugging Face deployment guide.
-
-## AMD bootstrap
-
-Once the repo is on an AMD Developer Cloud instance with ROCm and Python available:
+### Frontend
 
 ```bash
-cp backend/.env.example backend/.env
-AMD_MODEL="Qwen/Qwen2.5-7B-Instruct" HF_TOKEN="..." bash scripts/run_vllm_rocm.sh
+cd frontend
+npm install
+npm run build
+npm run dev
 ```
 
-Then run the API:
+## Deployment to AMD Cloud
 
 ```bash
-bash scripts/run_backend.sh
+cd ~/ReliefLensAI
+git pull origin main
+
+cd backend
+source .venv/bin/activate
+pip install -r requirements.txt
+
+tmux kill-session -t backend 2>/dev/null || true
+tmux new -d -s backend "cd ~/ReliefLensAI/backend && source .venv/bin/activate && python -m uvicorn main:app --host 0.0.0.0 --port 8080"
+
+curl http://127.0.0.1:8080/health
+curl http://134.199.203.136:8080/health
 ```
+
+## Deployment to Hugging Face Docker Space
+
+1. Copy the updated `frontend/` application into the Space repository.
+2. Keep:
+   - `NEXT_PUBLIC_API_URL=/backend`
+   - `NEXT_PUBLIC_API_BASE_URL=/backend`
+   - `NEXT_PUBLIC_BACKEND_URL=/backend`
+3. Push and wait for the Docker build.
+4. Test:
+   - `https://lablab-ai-amd-developer-hackathon-relieflens-frontend.hf.space/backend/health`
+
+The Space container uses Node 20, builds the Next.js app, and serves it on port `7860`.
+
+## Known limitations
+
+- Current incident classification is rule-based fallback analysis
+- Audio is accepted but not transcribed unless an ASR model is connected later
+- EXIF GPS is only available for images that actually contain GPS metadata
+- Text-location resolution is intentionally conservative and does not invent precise coordinates
+- Human review remains mandatory for operational use

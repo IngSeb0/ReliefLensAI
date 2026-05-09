@@ -1,0 +1,20 @@
+FROM node:20-bookworm-slim
+
+WORKDIR /app
+
+ARG NEXT_PUBLIC_API_URL=/backend
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ARG NEXT_PUBLIC_API_BASE_URL=/backend
+ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+ARG NEXT_PUBLIC_BACKEND_URL=/backend
+ENV NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
+
+COPY package.json package-lock.json ./
+RUN npm install
+
+COPY . .
+RUN npm run build
+
+EXPOSE 7860
+
+CMD ["npx", "next", "start", "-H", "0.0.0.0", "-p", "7860"]

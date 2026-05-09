@@ -1,4 +1,6 @@
 export type Priority = "P0" | "P1" | "P2" | "P3";
+export type Severity = "low" | "medium" | "high" | "critical";
+export type LocationSource = "browser_geolocation" | "map_click" | "image_exif" | "text_location" | "unknown";
 
 export type IncidentStatus = "new" | "acknowledged" | "in_progress" | "resolved";
 
@@ -83,3 +85,51 @@ export interface CrisisRoomSummary {
   created_at: string;
   status: string;
 }
+
+export interface EvidenceLocation {
+  lat: number | null;
+  lng: number | null;
+  label: string;
+  source: LocationSource;
+  confidence: number;
+}
+
+export interface EvidencePayload {
+  image: {
+    filename: string | null;
+    content_type: string | null;
+    size_bytes: number | null;
+    exif_gps_found: boolean;
+  };
+  audio: {
+    filename: string | null;
+    content_type: string | null;
+    size_bytes: number | null;
+    transcript: string | null;
+    status: string | null;
+  };
+  text: {
+    report_text: string;
+    location_text: string;
+  };
+}
+
+export interface DemoIncident {
+  incident_id: string;
+  incident_type: string;
+  title: string;
+  summary: string;
+  severity: Severity;
+  priority: Priority;
+  location: EvidenceLocation;
+  evidence: EvidencePayload;
+  evidence_findings: string[];
+  recommended_resources: string[];
+  confidence: number;
+  human_review_required: boolean;
+  safety_note: string;
+  updated_at?: string;
+  evidence_count?: number;
+}
+
+export type ImageAnalysisResponse = DemoIncident;

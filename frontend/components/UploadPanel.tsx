@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import type { CrisisRoomSummary } from "@/lib/types";
 
 interface UploadPanelProps {
-  onResults: (summary: CrisisRoomSummary, demoMode: boolean) => void;
+  onResults: (summary: CrisisRoomSummary) => void;
   onProcessing: (processing: boolean) => void;
   processing: boolean;
   onError?: (message: string) => void;
@@ -14,16 +14,11 @@ interface UploadPanelProps {
 
 const QUICK_TEST_MESSAGES = [
   "Hay una familia atrapada en el techo de una casa en Barrio Santa Ana, el agua sigue subiendo.",
-  "Adulto mayor con posible fractura en el centro comunitario, necesita atención médica.",
+  "Adulto mayor con posible fractura en el centro comunitario, necesita atencion medica.",
   "Tenemos 20 personas refugiadas en la escuela, falta agua potable.",
 ];
 
-export function UploadPanel({
-  onResults,
-  onProcessing,
-  processing,
-  onError,
-}: UploadPanelProps) {
+export function UploadPanel({ onResults, onProcessing, processing, onError }: UploadPanelProps) {
   const [rawMessages, setRawMessages] = useState(QUICK_TEST_MESSAGES.join("\n"));
   const messages = useMemo(
     () => rawMessages.split("\n").map((line) => line.trim()).filter(Boolean),
@@ -34,9 +29,9 @@ export function UploadPanel({
     onProcessing(true);
     try {
       const res = await api.runDemo();
-      onResults(res.data as CrisisRoomSummary, false);
+      onResults(res.data as CrisisRoomSummary);
     } catch {
-      onError?.("No se pudo ejecutar el escenario demo. Verifica que el backend esté disponible.");
+      onError?.("The Santa Ana scenario could not be executed. Verify backend availability.");
     } finally {
       onProcessing(false);
     }
@@ -64,9 +59,9 @@ export function UploadPanel({
     onProcessing(true);
     try {
       const res = await api.processBatch(payload);
-      onResults(res.data as CrisisRoomSummary, false);
+      onResults(res.data as CrisisRoomSummary);
     } catch {
-      onError?.("No se pudo procesar la prueba rápida. Revisa la conexión con el backend.");
+      onError?.("Quick text processing failed. Check the backend connection through /backend.");
     } finally {
       onProcessing(false);
     }
@@ -74,34 +69,28 @@ export function UploadPanel({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-          Demo recomendada
-        </p>
-        <p className="mt-1 text-sm leading-6 text-gray-300">
-          Ejecuta el escenario Santa Ana para mostrar la tubería completa: ingestión, normalización,
-          deduplicación, prioridad, recursos y despacho.
+      <div className="rounded-[1.4rem] border border-white/10 bg-white/5 p-4">
+        <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">Scenario Run</p>
+        <p className="mt-2 text-sm leading-6 text-slate-300">
+          Launch the Santa Ana synthetic scenario to demonstrate the full triage pipeline from intake to dispatch drafting.
         </p>
         <button
           onClick={handleLoadDemo}
           disabled={processing}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-orange-500 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-          Ejecutar Demo Santa Ana
+          {processing ? "Running scenario" : "Run Santa Ana demo"}
         </button>
       </div>
 
-      <div className="rounded-lg border border-gray-800 bg-gray-950/60 p-3">
+      <div className="rounded-[1.4rem] border border-white/10 bg-white/5 p-4">
         <div className="flex items-start gap-2">
-          <FileText className="mt-0.5 h-4 w-4 text-blue-400" />
+          <FileText className="mt-0.5 h-4 w-4 text-sky-300" />
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-              Prueba rápida
-            </p>
-            <p className="mt-1 text-sm leading-6 text-gray-300">
-              Pega mensajes de texto separados por línea para validar el backend sin depender del
-              dataset demo.
+            <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">Manual Intake</p>
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              Paste one report per line to validate deterministic triage without relying on the seeded dataset.
             </p>
           </div>
         </div>
@@ -109,23 +98,23 @@ export function UploadPanel({
         <textarea
           value={rawMessages}
           onChange={(e) => setRawMessages(e.target.value)}
-          rows={8}
-          className="mt-3 w-full resize-none rounded-lg border border-gray-800 bg-gray-900 px-3 py-3 text-sm text-gray-100 outline-none ring-0 placeholder:text-gray-500 focus:border-blue-600"
-          placeholder="Un reporte por línea"
+          rows={7}
+          className="mt-4 w-full resize-none rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-sky-400/50"
+          placeholder="One report per line"
         />
 
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs text-gray-400">
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs text-slate-400">
             <AlertCircle className="h-3.5 w-3.5" />
-            <span>{messages.length} mensajes listos para procesar</span>
+            <span>{messages.length} messages ready</span>
           </div>
           <button
             onClick={handleQuickProcess}
             disabled={processing || messages.length === 0}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex items-center gap-2 rounded-2xl bg-sky-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
-            Procesar texto
+            Process text
           </button>
         </div>
       </div>
