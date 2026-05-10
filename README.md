@@ -210,27 +210,54 @@ Local admin login test credentials:
 
 ## Deployment to AMD Cloud
 
+Recommended topology:
+
+- AMD VM: FastAPI backend on `:8080`
+- AMD VM: external Qwen OpenAI-compatible endpoint on `:8000`
+- Hugging Face Space: public container on `:7860`
+
+On the AMD VM:
+
 ```bash
-cd ~/ReliefLensAI
-git pull origin main
-
-cd backend
-source .venv/bin/activate
-pip install -r requirements.txt
-
-tmux kill-session -t backend 2>/dev/null || true
-tmux new -d -s backend "cd ~/ReliefLensAI/backend && source .venv/bin/activate && python -m uvicorn main:app --host 0.0.0.0 --port 8080"
-
-curl http://127.0.0.1:8080/health
-curl http://134.199.203.136:8080/health
+git clone https://github.com/<your-org-or-user>/ReliefLensAI.git
+cd ReliefLensAI
+bash scripts/deploy_backend_amd.sh
+cp backend/.env.example backend/.env
 ```
 
-Set or export these backend variables on the AMD VM before starting the app:
+Edit `backend/.env` for your VM. Minimum values:
 
-- `ADMIN_USERNAME`
-- `ADMIN_PASSWORD`
-- `ADMIN_TOKEN_SECRET`
-- `ADMIN_TOKEN_EXPIRE_MINUTES`
+```env
+APP_ENV=production
+DEBUG=false
+DEMO_MODE=false
+STORAGE_PATH=./data
+CORS_ORIGINS=https://YOUR_SPACE.hf.space
+
+QWEN_ENABLED=true
+QWEN_BASE_URL=http://127.0.0.1:8000/v1
+QWEN_API_KEY=your-qwen-key
+QWEN_MODEL=Qwen/Qwen2-7B-Instruct
+
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=change-me-in-production
+ADMIN_TOKEN_SECRET=change-me-random-secret
+ADMIN_TOKEN_EXPIRE_MINUTES=720
+```
+
+Then start the backend:
+
+```bash
+bash scripts/start_backend_amd.sh
+curl http://127.0.0.1:8080/health
+curl http://YOUR_AMD_PUBLIC_IP:8080/health
+```
+
+If Qwen is running separately on the same VM, verify it first:
+
+```bash
+curl http://127.0.0.1:8000/v1/models -H "Authorization: Bearer your-qwen-key"
+```
 
 ## Deployment to Hugging Face Docker Space
 
@@ -277,6 +304,25 @@ Build and push flow:
    - `https://YOUR_SPACE.hf.space/emergencies`
 
 The Space container uses the root `Dockerfile` and serves the full app on port `7860`.
+
+Deployment flow:
+
+1. Create a Docker Space on Hugging Face.
+2. Push this repository root to the Space repository.
+3. Configure these Variables:
+   - `QWEN_ENABLED=true`
+   - `QWEN_BASE_URL=http://AMD_PUBLIC_IP:8000/v1`
+   - `QWEN_MODEL=Qwen/Qwen2-7B-Instruct`
+   - `NEXT_PUBLIC_API_URL=/api`
+   - `NEXT_PUBLIC_API_BASE_URL=/api`
+   - `NEXT_PUBLIC_BACKEND_URL=/api`
+4. Configure this Secret:
+   - `QWEN_API_KEY`
+5. Wait for the Docker build.
+6. Validate:
+   - `https://YOUR_SPACE.hf.space/health`
+   - `https://YOUR_SPACE.hf.space/api/demo/incidents`
+   - `https://YOUR_SPACE.hf.space/admin/login`
 
 ## Hugging Face Space + AMD Qwen Deployment
 
