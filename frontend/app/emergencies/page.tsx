@@ -129,10 +129,10 @@ export default function EmergenciesPage() {
         } else if (error.response) {
           setError(`Evidence submission failed with status ${error.response.status}.`);
         } else {
-          setError("Evidence submission failed. Verify the backend is reachable through /backend.");
+          setError("Evidence submission failed. Verify the backend is reachable through the frontend proxy.");
         }
       } else {
-        setError("Evidence submission failed. Verify the backend is reachable through /backend.");
+        setError("Evidence submission failed. Verify the backend is reachable through the frontend proxy.");
       }
     } finally {
       setLoading(false);

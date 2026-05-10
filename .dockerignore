@@ -1,0 +1,14 @@
+.git
+.gitignore
+.pytest_cache
+.venv
+backend/.venv
+backend/test_artifacts
+frontend/.next
+frontend/node_modules
+node_modules
+__pycache__
+*.pyc
+*.pyo
+*.log
+pytest-cache-files-*

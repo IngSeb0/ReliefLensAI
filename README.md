@@ -122,9 +122,15 @@ These values must stay on the backend. Do not expose them through `NEXT_PUBLIC_*
 
 ## Architecture
 
-Hugging Face Docker Space -> Next.js frontend -> `/backend` rewrite proxy -> AMD FastAPI backend -> ROCm / MI300X / vLLM
+Local development:
 
-The browser does not call `localhost:8080`, `127.0.0.1:8080`, or the AMD public IP directly from client-side code. Frontend API requests use `/backend`, and Next.js rewrites that path to the backend.
+`Next.js frontend -> /backend rewrite proxy -> FastAPI backend`
+
+Hugging Face Space deployment:
+
+`Hugging Face Docker Space -> nginx on :7860 -> Next.js frontend + FastAPI backend -> external AMD Qwen OpenAI-compatible endpoint`
+
+The browser does not call `localhost:8080`, `127.0.0.1:8080`, or the AMD public IP directly from client-side code. Local frontend requests use `/backend`. The Hugging Face Space build uses same-origin `/api`, which nginx proxies to the internal FastAPI backend.
 
 ## Backend endpoints
 
@@ -228,24 +234,85 @@ Set or export these backend variables on the AMD VM before starting the app:
 
 ## Deployment to Hugging Face Docker Space
 
-1. Copy the updated `frontend/` application into the Space repository.
-2. Keep these Space variables:
-   - `NEXT_PUBLIC_API_URL=/backend`
-   - `NEXT_PUBLIC_API_BASE_URL=/backend`
-   - `NEXT_PUBLIC_BACKEND_URL=/backend`
-   - `BACKEND_ORIGIN=http://134.199.203.136:8080`
-3. Push and wait for the Docker build.
+The repository now includes a root `Dockerfile` for a single Hugging Face Docker Space container.
+
+Container behavior:
+
+- FastAPI backend runs internally on `127.0.0.1:8080`
+- Next.js frontend runs internally on `127.0.0.1:3000`
+- `nginx` exposes only port `7860`
+- `/` routes to the Next.js frontend
+- `/api/*` routes to the FastAPI backend
+- `/backend/*` is also proxied to the backend for compatibility with the older frontend path layout
+
+Public browser behavior:
+
+- the browser calls same-origin `/api` in the Hugging Face Space build
+- no Qwen secret is exposed to the frontend bundle
+- the backend reads `QWEN_*` variables at runtime inside the container
+
+Space variables:
+
+- `QWEN_ENABLED=true`
+- `QWEN_BASE_URL=http://AMD_PUBLIC_IP:8000/v1`
+- `QWEN_MODEL=Qwen/Qwen2-7B-Instruct`
+- `NEXT_PUBLIC_API_URL=/api`
+- `NEXT_PUBLIC_API_BASE_URL=/api`
+- `NEXT_PUBLIC_BACKEND_URL=/api`
+
+Space secrets:
+
+- `QWEN_API_KEY`
+
+Do not put `QWEN_API_KEY`, admin credentials, or token secrets in any `NEXT_PUBLIC_*` variable.
+
+Build and push flow:
+
+1. Push this repository to the Hugging Face Space repo.
+2. Configure the Space variables and secret above.
+3. Wait for the Docker build to finish.
 4. Test:
-   - `https://lablab-ai-amd-developer-hackathon-relieflens-frontend.hf.space/backend/health`
+   - `https://YOUR_SPACE.hf.space/health`
+   - `https://YOUR_SPACE.hf.space/api/demo/incidents`
+   - `https://YOUR_SPACE.hf.space/emergencies`
 
-The Space container uses Node 20, builds the Next.js app, and serves it on port `7860`.
+The Space container uses the root `Dockerfile` and serves the full app on port `7860`.
 
-Do not put admin secrets in Hugging Face `NEXT_PUBLIC_*` variables. Admin backend secrets stay only on the AMD backend:
+## Hugging Face Space + AMD Qwen Deployment
 
-- `ADMIN_USERNAME`
-- `ADMIN_PASSWORD`
-- `ADMIN_TOKEN_SECRET`
-- `ADMIN_TOKEN_EXPIRE_MINUTES`
+This deployment mode keeps Qwen external on AMD infrastructure while Hugging Face hosts the public UI and API gateway container.
+
+Architecture:
+
+`Hugging Face Docker Space -> nginx on :7860 -> Next.js on :3000 + FastAPI on :8080 -> AMD Qwen OpenAI-compatible endpoint`
+
+Recommended AMD Qwen runtime variables for the Space:
+
+- `QWEN_ENABLED=true`
+- `QWEN_BASE_URL=http://AMD_PUBLIC_IP:8000/v1`
+- `QWEN_MODEL=Qwen/Qwen2-7B-Instruct`
+
+Required Hugging Face Space secret:
+
+- `QWEN_API_KEY`
+
+Optional local Docker smoke test before pushing to Hugging Face:
+
+```bash
+docker build -t relieflens-space .
+docker run --rm -p 7860:7860 \
+  -e QWEN_ENABLED=true \
+  -e QWEN_BASE_URL=http://AMD_PUBLIC_IP:8000/v1 \
+  -e QWEN_MODEL=Qwen/Qwen2-7B-Instruct \
+  -e QWEN_API_KEY=your-secret \
+  relieflens-space
+```
+
+Then test:
+
+- `http://localhost:7860/health`
+- `http://localhost:7860/api/demo/incidents`
+- `http://localhost:7860/admin/login`
 
 ## Known limitations
 

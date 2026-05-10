@@ -1,3 +1,5 @@
+import { buildApiUrl } from "@/lib/api";
+
 const TOKEN_KEY = "admin_access_token";
 
 export function getAdminToken(): string | null {
@@ -36,7 +38,7 @@ export async function adminFetch(path: string, options: RequestInit = {}): Promi
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(`/backend${path}`, {
+  const response = await fetch(buildApiUrl(path), {
     ...options,
     headers,
   });

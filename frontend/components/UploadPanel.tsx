@@ -61,7 +61,7 @@ export function UploadPanel({ onResults, onProcessing, processing, onError }: Up
       const res = await api.processBatch(payload);
       onResults(res.data as CrisisRoomSummary);
     } catch {
-      onError?.("Quick text processing failed. Check the backend connection through /backend.");
+      onError?.("Quick text processing failed. Check the backend connection through the frontend proxy.");
     } finally {
       onProcessing(false);
     }

@@ -97,7 +97,7 @@ export function ImageEvidencePanel({
       setResult(nextIncident);
       onIncidentCreated(nextIncident);
     } catch {
-      setError("Evidence analysis failed. Verify the AMD backend is reachable through /backend.");
+      setError("Evidence analysis failed. Verify the backend is reachable through the frontend proxy.");
     } finally {
       setLoading(false);
     }

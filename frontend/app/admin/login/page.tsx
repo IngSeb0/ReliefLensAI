@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { setAdminToken } from "@/lib/adminAuth";
+import { buildApiUrl } from "@/lib/api";
 import type { AdminLoginResponse } from "@/lib/types";
 
 export default function AdminLoginPage() {
@@ -14,7 +15,7 @@ export default function AdminLoginPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    const response = await fetch("/backend/api/admin/login", {
+    const response = await fetch(buildApiUrl("/api/admin/login"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
