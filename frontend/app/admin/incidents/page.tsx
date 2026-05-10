@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { adminFetch } from "@/lib/adminAuth";
-import type { DemoIncident, Priority, Severity, AdminIncidentStatus } from "@/lib/types";
+import { getIncidentId, normalizeIncidents } from "@/lib/incidents";
+import type { DemoIncident } from "@/lib/types";
 
 export default function AdminIncidentsPage() {
   const [incidents, setIncidents] = useState<DemoIncident[]>([]);
@@ -14,7 +15,7 @@ export default function AdminIncidentsPage() {
   useEffect(() => {
     adminFetch("/api/admin/incidents")
       .then((response) => response.json())
-      .then((data) => setIncidents(data as DemoIncident[]))
+      .then((data) => setIncidents(normalizeIncidents(data)))
       .catch(() => undefined);
   }, []);
 
@@ -49,18 +50,21 @@ export default function AdminIncidentsPage() {
 
         <section className="space-y-3">
           {filtered.map((incident) => (
-            <div key={incident.incident_id} className="panel rounded-[1.4rem] p-4">
+            <div key={getIncidentId(incident)} className="panel rounded-[1.4rem] p-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-lg text-white">{incident.title}</p>
                   <p className="mt-1 text-sm text-slate-300">
                     {incident.priority} · {incident.severity} · {incident.status}
                   </p>
+                  <p className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">
+                    {incident.analysis_provider ?? "rule_based_fallback"} · {Math.round(incident.confidence * 100)}% confidence
+                  </p>
                   <p className="mt-1 text-sm text-slate-400">
                     {incident.location.label} · {incident.location.source} · {incident.created_at ?? "unknown"}
                   </p>
                 </div>
-                <Link href={`/admin/incidents/${incident.incident_id}`} className="rounded-full bg-sky-400 px-4 py-2 text-sm font-semibold text-slate-950">
+                <Link href={`/admin/incidents/${getIncidentId(incident)}`} className="rounded-full bg-sky-400 px-4 py-2 text-sm font-semibold text-slate-950">
                   Open
                 </Link>
               </div>

@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import type { ComponentType } from "react";
-import { useMapEvents } from "react-leaflet";
+import { useMap, useMapEvents } from "react-leaflet";
 import { CircleMarker, MapContainer, Popup, TileLayer } from "react-leaflet";
 
 interface EmergencyLocationMapProps {
@@ -34,6 +35,26 @@ function MapClickHandler({ onLocationSelect }: { onLocationSelect: (location: { 
   return null;
 }
 
+function MapViewportController({
+  selectedLocation,
+}: {
+  selectedLocation: { lat: number; lng: number } | null;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!selectedLocation) {
+      return;
+    }
+    map.flyTo([selectedLocation.lat, selectedLocation.lng], 14, {
+      animate: true,
+      duration: 1.2,
+    });
+  }, [map, selectedLocation]);
+
+  return null;
+}
+
 export function EmergencyLocationMap({ selectedLocation, onLocationSelect }: EmergencyLocationMapProps) {
   return (
     <div className="h-[320px] overflow-hidden rounded-[1.5rem] border border-white/10">
@@ -42,6 +63,7 @@ export function EmergencyLocationMap({ selectedLocation, onLocationSelect }: Eme
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <MapViewportController selectedLocation={selectedLocation} />
         <MapClickHandler onLocationSelect={onLocationSelect} />
         {selectedLocation ? (
           <UnsafeCircleMarker

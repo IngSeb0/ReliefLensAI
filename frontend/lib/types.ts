@@ -101,6 +101,7 @@ export interface EvidencePayload {
     content_type: string | null;
     size_bytes: number | null;
     exif_gps_found: boolean;
+    findings?: string | null;
   };
   audio: {
     filename: string | null;
@@ -127,6 +128,11 @@ export interface DemoIncident {
   summary: string;
   severity: Severity;
   priority: Priority;
+  analysis_provider?: "qwen" | "rule_based_fallback";
+  life_safety_risk?: boolean;
+  detected_risks: string[];
+  evidence_summary?: string;
+  analysis_admin_notes?: string;
   location: EvidenceLocation;
   evidence: EvidencePayload;
   evidence_findings: string[];

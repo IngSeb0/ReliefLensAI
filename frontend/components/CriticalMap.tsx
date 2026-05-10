@@ -4,6 +4,7 @@ import type { ComponentType } from "react";
 import { useMapEvents } from "react-leaflet";
 import { CircleMarker, MapContainer, Popup, TileLayer } from "react-leaflet";
 import { SEVERITY_STYLES } from "@/lib/demo";
+import { getIncidentId } from "@/lib/incidents";
 import type { DemoIncident } from "@/lib/types";
 
 interface CriticalMapProps {
@@ -81,11 +82,12 @@ export function CriticalMap({
           }
 
           const palette = SEVERITY_STYLES[incident.severity];
-          const isActive = incident.incident_id === activeIncidentId;
+          const incidentId = getIncidentId(incident);
+          const isActive = incidentId === activeIncidentId;
 
           return (
             <UnsafeCircleMarker
-              key={incident.incident_id}
+              key={incidentId}
               center={[incident.location.lat, incident.location.lng]}
               radius={isActive ? 14 : 10}
               pathOptions={{
@@ -95,7 +97,7 @@ export function CriticalMap({
                 weight: isActive ? 3 : 2,
               }}
               eventHandlers={{
-                click: () => onIncidentSelect?.(incident.incident_id),
+                click: () => onIncidentSelect?.(incidentId),
               }}
             >
               <UnsafePopup>

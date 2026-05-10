@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { clearAdminToken, adminFetch } from "@/lib/adminAuth";
+import { getIncidentId, normalizeIncidents } from "@/lib/incidents";
 import type { DemoIncident } from "@/lib/types";
 
 export default function AdminDashboardPage() {
@@ -11,7 +12,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     adminFetch("/api/admin/incidents")
       .then((response) => response.json())
-      .then((data) => setIncidents(data as DemoIncident[]))
+      .then((data) => setIncidents(normalizeIncidents(data)))
       .catch(() => undefined);
   }, []);
 
@@ -57,9 +58,12 @@ export default function AdminDashboardPage() {
           <h2 className="text-2xl text-white">Recent incidents</h2>
           <div className="mt-4 space-y-3">
             {incidents.slice(0, 5).map((incident) => (
-              <Link key={incident.incident_id} href={`/admin/incidents/${incident.incident_id}`} className="block rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
+              <Link key={getIncidentId(incident)} href={`/admin/incidents/${getIncidentId(incident)}`} className="block rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
                 <p className="font-semibold text-white">{incident.title}</p>
                 <p className="mt-1">{incident.priority} · {incident.severity} · {incident.location.label}</p>
+                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">
+                  {incident.analysis_provider ?? "rule_based_fallback"} · {Math.round(incident.confidence * 100)}% confidence
+                </p>
               </Link>
             ))}
           </div>

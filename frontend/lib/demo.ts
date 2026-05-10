@@ -3,11 +3,16 @@ import type { DemoIncident, Severity } from "@/lib/types";
 export const DEMO_INCIDENTS: DemoIncident[] = [
   {
     incident_id: "demo-wildfire-hillside",
-    incident_type: "wildfire",
+    incident_type: "fire",
     title: "Wildfire smoke plume near hillside homes",
     summary: "Residents report active smoke movement across a residential slope with narrowing access roads.",
     severity: "high",
     priority: "P1",
+    analysis_provider: "rule_based_fallback",
+    life_safety_risk: false,
+    detected_risks: ["fire spread", "smoke exposure"],
+    evidence_summary: "Reported fire or smoke conditions with potential spread toward occupied areas.",
+    analysis_admin_notes: "Verify fire spread and evaluate evacuation constraints.",
     location: {
       lat: 33.7455,
       lng: -117.8677,
@@ -52,6 +57,11 @@ export const DEMO_INCIDENTS: DemoIncident[] = [
     summary: "Road surface is submerged and vehicle access is restricted along the main connector route.",
     severity: "high",
     priority: "P1",
+    analysis_provider: "rule_based_fallback",
+    life_safety_risk: false,
+    detected_risks: ["rising flood water", "blocked roadway access"],
+    evidence_summary: "Flooding is affecting road access and nearby structures, with conditions worsening.",
+    analysis_admin_notes: "Verify water rise rate and access routes before field deployment.",
     location: {
       lat: 33.7542,
       lng: -117.8549,
@@ -96,6 +106,11 @@ export const DEMO_INCIDENTS: DemoIncident[] = [
     summary: "Shelter staff report an injured evacuee requiring stabilization and transfer coordination.",
     severity: "critical",
     priority: "P0",
+    analysis_provider: "rule_based_fallback",
+    life_safety_risk: true,
+    detected_risks: ["medical distress", "possible evacuation delay"],
+    evidence_summary: "Evidence suggests an immediate rescue or medical life-safety event.",
+    analysis_admin_notes: "Prioritize welfare verification and medical escalation.",
     location: {
       lat: 33.7511,
       lng: -117.8714,
