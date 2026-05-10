@@ -1,14 +1,73 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 :root {
-  --background: #030712;
-  --foreground: #f9fafb;
+  --background: #07111f;
+  --foreground: #eef4ff;
+  --panel: rgba(7, 18, 31, 0.82);
+  --panel-strong: rgba(10, 24, 43, 0.94);
+  --line: rgba(173, 198, 255, 0.14);
+  --muted: #90a4c4;
+  --accent: #58c7ff;
+  --font-display: "Arial Narrow", "Franklin Gothic Medium", "Bahnschrift", sans-serif;
+  --font-body: "Segoe UI", "Trebuchet MS", "Helvetica Neue", sans-serif;
+  --font-mono: "Consolas", "Lucida Console", "Courier New", monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body), sans-serif;
+  background-image:
+    radial-gradient(circle at top left, rgba(88, 199, 255, 0.14), transparent 28%),
+    radial-gradient(circle at 85% 20%, rgba(248, 113, 113, 0.16), transparent 22%),
+    linear-gradient(180deg, #08111d 0%, #07111f 42%, #040912 100%);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display), sans-serif;
+  letter-spacing: 0.02em;
+}
+
+code,
+pre,
+.font-mono {
+  font-family: var(--font-mono), monospace;
+}
+
+::selection {
+  background: rgba(88, 199, 255, 0.28);
+}
+
+.panel {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow:
+    0 22px 60px rgba(1, 6, 16, 0.46),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(18px);
+}
+
+.panel-strong {
+  background: var(--panel-strong);
+}
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: #0a1729;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: rgba(6, 16, 28, 0.96);
+  color: #f8fbff;
+  border: 1px solid rgba(173, 198, 255, 0.15);
 }
 
 /* Custom scrollbar */

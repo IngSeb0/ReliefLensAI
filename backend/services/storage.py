@@ -80,6 +80,13 @@ class StorageService:
     async def list_incidents(self) -> List[Dict[str, Any]]:
         return await self._list("incidents")
 
+    async def find_incident_by_tracking_code(self, tracking_code: str) -> Optional[Dict[str, Any]]:
+        incidents = await self.list_incidents()
+        for incident in incidents:
+            if incident.get("tracking_code") == tracking_code:
+                return incident
+        return None
+
     async def save_signal(self, signal_id: str, data: Dict[str, Any]) -> None:
         await self._write("signals", signal_id, data)
 

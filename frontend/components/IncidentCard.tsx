@@ -1,205 +1,204 @@
 "use client";
 
-import { useState } from "react";
-import {
-  ChevronDown,
-  ChevronUp,
-  MapPin,
-  Users,
-  CheckCircle,
-  Send,
-  FileText,
-  Image,
-  Mic,
-  Table,
-} from "lucide-react";
+import { useMemo, useState } from "react";
+import { CheckCircle2, ChevronDown, ChevronUp, FileText, Image, MapPin, Mic, Radio, Send, Table, Users } from "lucide-react";
 import { PriorityBadge } from "@/components/PriorityBadge";
-import type { Incident, EvidenceItem } from "@/lib/types";
 import { api } from "@/lib/api";
+import type { DispatchMessage, EvidenceItem, Incident, ResourceRecommendation } from "@/lib/types";
 
 const MODALITY_ICON: Record<string, React.ReactNode> = {
-  text: <FileText className="w-3.5 h-3.5 text-blue-400" />,
-  image: <Image className="w-3.5 h-3.5 text-purple-400" />,
-  audio: <Mic className="w-3.5 h-3.5 text-green-400" />,
-  csv: <Table className="w-3.5 h-3.5 text-yellow-400" />,
-  video: <Image className="w-3.5 h-3.5 text-pink-400" />,
+  text: <FileText className="h-3.5 w-3.5 text-blue-400" />,
+  image: <Image className="h-3.5 w-3.5 text-purple-400" />,
+  audio: <Mic className="h-3.5 w-3.5 text-emerald-400" />,
+  csv: <Table className="h-3.5 w-3.5 text-yellow-400" />,
+  location: <MapPin className="h-3.5 w-3.5 text-cyan-400" />,
 };
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  new: { label: "Nuevo", color: "text-blue-400" },
-  acknowledged: { label: "Recibido", color: "text-yellow-400" },
-  in_progress: { label: "En progreso", color: "text-orange-400" },
-  resolved: { label: "Resuelto", color: "text-green-400" },
-  cancelled: { label: "Cancelado", color: "text-gray-400" },
+const STATUS_LABELS: Record<string, string> = {
+  new: "Nuevo",
+  acknowledged: "Recibido",
+  in_progress: "En progreso",
+  resolved: "Resuelto",
 };
 
 interface IncidentCardProps {
   incident: Incident;
+  resources?: ResourceRecommendation[];
+  dispatch?: DispatchMessage | null;
   onApprove?: (id: string) => void;
 }
 
-function EvidenceChip({ item }: { item: EvidenceItem }) {
+function EvidenceRow({ item }: { item: EvidenceItem }) {
   return (
-    <div className="flex items-start gap-2 bg-gray-700/60 rounded-md px-3 py-2 text-xs text-gray-300">
-      <span className="mt-0.5 shrink-0">
-        {MODALITY_ICON[item.modality] ?? MODALITY_ICON["text"]}
-      </span>
-      <span className="leading-snug">{item.description}</span>
+    <div className="flex items-start gap-2 rounded-lg border border-gray-800 bg-gray-950/70 px-3 py-2">
+      <span className="mt-0.5 shrink-0">{MODALITY_ICON[item.modality] ?? MODALITY_ICON.text}</span>
+      <span className="text-xs leading-5 text-gray-300">{item.description}</span>
     </div>
   );
 }
 
-export function IncidentCard({ incident, onApprove }: IncidentCardProps) {
+export function IncidentCard({ incident, resources = [], dispatch, onApprove }: IncidentCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const [dispatchMsg, setDispatchMsg] = useState(
-    incident.dispatch_message?.message_text ?? ""
-  );
-  const [generatingDispatch, setGeneratingDispatch] = useState(false);
   const [approved, setApproved] = useState(incident.human_approved);
+  const [dispatchMessage, setDispatchMessage] = useState(dispatch?.message ?? "");
+  const [generatingDispatch, setGeneratingDispatch] = useState(false);
 
-  const statusCfg = STATUS_LABELS[incident.status] ?? STATUS_LABELS["new"];
-
-  async function handleGenerateDispatch() {
-    setGeneratingDispatch(true);
-    try {
-      const res = await api.generateDispatch(incident.id);
-      setDispatchMsg(
-        res.data?.message_text ?? res.data?.dispatch_message?.message_text ?? ""
-      );
-    } catch {
-      setDispatchMsg(
-        `🚨 DESPACHO ${incident.priority} — ${incident.title}\n📍 ${incident.location}\n👥 ${incident.affected_people} personas afectadas.\nAcción requerida inmediata. Confirmar recepción.`
-      );
-    } finally {
-      setGeneratingDispatch(false);
-    }
-  }
+  const confidencePct = Math.round(incident.confidence * 100);
+  const statusLabel = STATUS_LABELS[incident.status] ?? incident.status;
+  const resourceSummary = useMemo(
+    () =>
+      resources
+        .map((resource) =>
+          resource.quantity ? `${resource.quantity} ${resource.description}` : resource.description,
+        )
+        .slice(0, 3)
+        .join(" · "),
+    [resources],
+  );
 
   async function handleApprove() {
     try {
       await api.approveIncident(incident.id);
     } catch {
-      // optimistic update regardless
+      // optimistic update
     }
     setApproved(true);
     onApprove?.(incident.id);
   }
 
-  const confidencePct = Math.round((incident.confidence ?? 0) * 100);
+  async function handleGenerateDispatch() {
+    setGeneratingDispatch(true);
+    try {
+      const res = await api.generateDispatch(incident.id);
+      setDispatchMessage(res.data?.message ?? "");
+    } finally {
+      setGeneratingDispatch(false);
+    }
+  }
 
   return (
-    <div
-      className={`rounded-xl border transition-all duration-200 ${
-        incident.priority === "P0"
-          ? "border-red-700/60 bg-gray-900/90"
-          : incident.priority === "P1"
-            ? "border-orange-700/40 bg-gray-900/80"
-            : "border-gray-700/40 bg-gray-900/70"
-      }`}
-    >
-      {/* Header — always visible */}
+    <article className="overflow-hidden rounded-xl border border-gray-800 bg-gray-900">
       <button
-        className="w-full text-left p-4 flex items-start gap-3 cursor-pointer"
-        onClick={() => setExpanded((e) => !e)}
+        onClick={() => setExpanded((value) => !value)}
+        className="flex w-full items-start gap-3 p-4 text-left"
         aria-expanded={expanded}
       >
-        <div className="shrink-0 mt-0.5">
+        <div className="shrink-0">
           <PriorityBadge priority={incident.priority} />
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-white text-sm leading-snug truncate">
-            {incident.title}
-          </p>
-          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-gray-400">
-            <span className="flex items-center gap-1">
-              <MapPin className="w-3 h-3" />
-              {incident.location}
-            </span>
-            <span className="flex items-center gap-1">
-              <Users className="w-3 h-3" />
-              {incident.affected_people} personas
-            </span>
-            <span className={statusCfg.color}>{statusCfg.label}</span>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h3 className="truncate text-sm font-semibold text-white">{incident.title}</h3>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
+                <span className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  {incident.location ?? "Ubicación no disponible"}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Users className="h-3 w-3" />
+                  {incident.affected_people ?? 0} personas
+                </span>
+                <span>{statusLabel}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs text-gray-500">{confidencePct}%</span>
+              {approved ? <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : null}
+              {expanded ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
+            </div>
           </div>
-        </div>
-        <div className="shrink-0 flex items-center gap-2 ml-2">
-          <span className="text-xs text-gray-500">{confidencePct}%</span>
-          {approved && (
-            <CheckCircle className="w-4 h-4 text-green-400" />
-          )}
-          {expanded ? (
-            <ChevronUp className="w-4 h-4 text-gray-400" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-gray-400" />
-          )}
+
+          {!expanded && resourceSummary ? (
+            <p className="mt-2 truncate text-xs text-gray-500">{resourceSummary}</p>
+          ) : null}
         </div>
       </button>
 
-      {/* Expanded content */}
-      {expanded && (
-        <div className="px-4 pb-4 space-y-4 border-t border-gray-700/50 pt-3">
-          {/* Description */}
-          <p className="text-sm text-gray-300 leading-relaxed">
-            {incident.description}
-          </p>
+      {expanded ? (
+        <div className="border-t border-gray-800 px-4 pb-4 pt-4">
+          <div className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
+            <div className="space-y-4">
+              <section>
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Situación</h4>
+                <p className="mt-2 text-sm leading-6 text-gray-300">{incident.description}</p>
+              </section>
 
-          {/* Evidence */}
-          {incident.evidence && incident.evidence.length > 0 && (
-            <div>
-              <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                Evidencias ({incident.evidence.length})
-              </h4>
-              <div className="space-y-1.5">
-                {incident.evidence.map((ev) => (
-                  <EvidenceChip key={ev.id} item={ev} />
-                ))}
+              <section>
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Evidencia ({incident.evidence.length})
+                </h4>
+                <div className="mt-2 space-y-2">
+                  {incident.evidence.map((item) => (
+                    <EvidenceRow key={item.id} item={item} />
+                  ))}
+                </div>
+              </section>
+            </div>
+
+            <div className="space-y-4">
+              <section className="rounded-lg border border-gray-800 bg-gray-950/70 p-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Recursos sugeridos</h4>
+                {resources.length > 0 ? (
+                  <div className="mt-2 space-y-2">
+                    {resources.map((resource) => (
+                      <div key={resource.id} className="rounded-md border border-gray-800 bg-gray-900 px-3 py-2">
+                        <p className="text-sm font-medium text-white">
+                          {resource.quantity ? `${resource.quantity} ` : ""}
+                          {resource.description}
+                        </p>
+                        <p className="mt-1 text-xs text-gray-400">
+                          {resource.urgency} · {resource.rationale}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-xs text-gray-500">Sin recursos asociados en esta sesión.</p>
+                )}
+              </section>
+
+              <section className="rounded-lg border border-gray-800 bg-gray-950/70 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Mensaje de despacho
+                  </h4>
+                  <button
+                    onClick={handleGenerateDispatch}
+                    disabled={generatingDispatch}
+                    className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-60"
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                    {generatingDispatch ? "Generando" : "Generar"}
+                  </button>
+                </div>
+                <div className="mt-2 rounded-md border border-gray-800 bg-gray-900 p-3 text-xs leading-5 text-gray-300">
+                  {dispatchMessage || "Todavía no hay mensaje generado para este incidente."}
+                </div>
+              </section>
+
+              <div className="flex items-center justify-between gap-3">
+                <div className="inline-flex items-center gap-2 rounded-md border border-gray-800 bg-gray-950/70 px-3 py-2 text-xs text-gray-400">
+                  <Radio className="h-3.5 w-3.5 text-orange-400" />
+                  Human-in-the-loop requerido para despacho crítico
+                </div>
+                <button
+                  onClick={handleApprove}
+                  disabled={approved}
+                  className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
+                    approved ? "bg-emerald-900/50 text-emerald-300" : "bg-emerald-600 text-white hover:bg-emerald-500"
+                  }`}
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  {approved ? "Aprobado" : "Aprobar"}
+                </button>
               </div>
             </div>
-          )}
-
-          {/* Dispatch message */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                Mensaje de Despacho
-              </h4>
-              <button
-                onClick={handleGenerateDispatch}
-                disabled={generatingDispatch}
-                className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
-              >
-                <Send className="w-3 h-3" />
-                {generatingDispatch ? "Generando…" : "Generar"}
-              </button>
-            </div>
-            {dispatchMsg ? (
-              <pre className="text-xs text-gray-300 bg-gray-800 rounded-lg p-3 whitespace-pre-wrap font-sans leading-relaxed border border-gray-700">
-                {dispatchMsg}
-              </pre>
-            ) : (
-              <p className="text-xs text-gray-500 italic">
-                Sin mensaje — haga clic en &quot;Generar&quot;
-              </p>
-            )}
-          </div>
-
-          {/* Approve button */}
-          <div className="flex justify-end">
-            <button
-              onClick={handleApprove}
-              disabled={approved}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                approved
-                  ? "bg-green-800/50 text-green-300 cursor-default"
-                  : "bg-green-600 hover:bg-green-500 text-white"
-              }`}
-            >
-              <CheckCircle className="w-4 h-4" />
-              {approved ? "Aprobado ✓" : "Aprobar (Human-in-Loop)"}
-            </button>
           </div>
         </div>
-      )}
-    </div>
+      ) : null}
+    </article>
   );
 }

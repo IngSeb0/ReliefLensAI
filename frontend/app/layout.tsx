@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ReliefLensAI | Crisis Room",
+  title: "ReliefLens AI | Crisis Operations Dashboard",
   description:
-    "Real-time multimodal disaster triage system powered by AMD MI300X",
+    "Multimodal disaster triage dashboard powered by AMD Developer Cloud and human-in-the-loop review.",
 };
 
 export default function RootLayout({
@@ -13,8 +13,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className="h-full">
-      <body className="bg-gray-950 text-white antialiased min-h-screen">
+    <html lang="en" className="h-full">
+      <body className="min-h-screen bg-[var(--background)] text-[var(--foreground)] antialiased">
         {children}
       </body>
     </html>

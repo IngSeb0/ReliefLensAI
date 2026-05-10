@@ -1,75 +1,67 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
-import { UploadCloud, FileText, X, Play, Loader2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { AlertCircle, FileText, Loader2, Play, SendHorizontal } from "lucide-react";
 import { api } from "@/lib/api";
 import type { CrisisRoomSummary } from "@/lib/types";
 
 interface UploadPanelProps {
-  onResults: (summary: CrisisRoomSummary, demoMode: boolean) => void;
+  onResults: (summary: CrisisRoomSummary) => void;
   onProcessing: (processing: boolean) => void;
   processing: boolean;
+  onError?: (message: string) => void;
 }
 
-interface FileItem {
-  name: string;
-  size: number;
-  type: string;
-}
+const QUICK_TEST_MESSAGES = [
+  "Hay una familia atrapada en el techo de una casa en Barrio Santa Ana, el agua sigue subiendo.",
+  "Adulto mayor con posible fractura en el centro comunitario, necesita atencion medica.",
+  "Tenemos 20 personas refugiadas en la escuela, falta agua potable.",
+];
 
-export function UploadPanel({
-  onResults,
-  onProcessing,
-  processing,
-}: UploadPanelProps) {
-  const [files, setFiles] = useState<FileItem[]>([]);
-  const [dragOver, setDragOver] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const addFiles = useCallback((newFiles: FileList | null) => {
-    if (!newFiles) return;
-    const items: FileItem[] = Array.from(newFiles).map((f) => ({
-      name: f.name,
-      size: f.size,
-      type: f.type,
-    }));
-    setFiles((prev) => [
-      ...prev,
-      ...items.filter((nf) => !prev.find((pf) => pf.name === nf.name)),
-    ]);
-  }, []);
-
-  function removeFile(name: string) {
-    setFiles((prev) => prev.filter((f) => f.name !== name));
-  }
-
-  function formatBytes(bytes: number) {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
+export function UploadPanel({ onResults, onProcessing, processing, onError }: UploadPanelProps) {
+  const [rawMessages, setRawMessages] = useState(QUICK_TEST_MESSAGES.join("\n"));
+  const messages = useMemo(
+    () => rawMessages.split("\n").map((line) => line.trim()).filter(Boolean),
+    [rawMessages],
+  );
 
   async function handleLoadDemo() {
     onProcessing(true);
     try {
       const res = await api.runDemo();
-      onResults(res.data as CrisisRoomSummary, false);
+      onResults(res.data as CrisisRoomSummary);
     } catch {
-      // Backend unreachable — return mock summary signal
-      onResults(
-        {
-          session_id: "demo-mock",
-          total_incidents: 5,
-          p0_count: 2,
-          p1_count: 1,
-          p2_count: 1,
-          p3_count: 1,
-          incidents: [],
-          processing_time_ms: 1240,
-          status: "completed",
-        },
-        true
-      );
+      onError?.("The Santa Ana scenario could not be executed. Verify backend availability.");
+    } finally {
+      onProcessing(false);
+    }
+  }
+
+  async function handleQuickProcess() {
+    if (messages.length === 0) {
+      return;
+    }
+
+    const sessionId = crypto.randomUUID();
+    const payload = {
+      session_id: sessionId,
+      scenario_name: "Quick Manual Intake",
+      reports: messages.map((content) => ({
+        id: crypto.randomUUID(),
+        session_id: sessionId,
+        report_type: "text",
+        content,
+        metadata: { source: "frontend_quick_test" },
+        created_at: new Date().toISOString(),
+      })),
+    };
+
+    onProcessing(true);
+    try {
+      const res = await api.processBatch(payload);
+      onResults(res.data as CrisisRoomSummary);
+    } catch {
+      onError?.("Quick text processing failed. Check the backend connection through the frontend proxy.");
     } finally {
       onProcessing(false);
     }
@@ -77,87 +69,55 @@ export function UploadPanel({
 
   return (
     <div className="space-y-4">
-      {/* Drag & drop zone */}
-      <div
-        className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
-          dragOver
-            ? "border-blue-500 bg-blue-950/30"
-            : "border-gray-600 hover:border-gray-500 bg-gray-800/40"
-        }`}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragOver(false);
-          addFiles(e.dataTransfer.files);
-        }}
-        onClick={() => inputRef.current?.click()}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          multiple
-          className="hidden"
-          accept=".txt,.csv,.png,.jpg,.jpeg,.mp3,.wav,.pdf"
-          onChange={(e) => addFiles(e.target.files)}
-        />
-        <UploadCloud className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-        <p className="text-sm text-gray-300 font-medium">
-          Arrastre archivos aquí
+      <div className="rounded-[1.4rem] border border-white/10 bg-white/5 p-4">
+        <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">Scenario Run</p>
+        <p className="mt-2 text-sm leading-6 text-slate-300">
+          Launch the Santa Ana synthetic scenario to demonstrate the full triage pipeline from intake to dispatch drafting.
         </p>
-        <p className="text-xs text-gray-500 mt-1">
-          Texto, imágenes, audio, CSV
-        </p>
+        <button
+          onClick={handleLoadDemo}
+          disabled={processing}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+          {processing ? "Running scenario" : "Run Santa Ana demo"}
+        </button>
       </div>
 
-      {/* File list */}
-      {files.length > 0 && (
-        <ul className="space-y-1.5">
-          {files.map((f) => (
-            <li
-              key={f.name}
-              className="flex items-center gap-2 bg-gray-800/50 rounded-lg px-3 py-2 text-xs"
-            >
-              <FileText className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-              <span className="flex-1 truncate text-gray-300">{f.name}</span>
-              <span className="text-gray-500 shrink-0">
-                {formatBytes(f.size)}
-              </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeFile(f.name);
-                }}
-                className="text-gray-500 hover:text-red-400 transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="rounded-[1.4rem] border border-white/10 bg-white/5 p-4">
+        <div className="flex items-start gap-2">
+          <FileText className="mt-0.5 h-4 w-4 text-sky-300" />
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">Manual Intake</p>
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              Paste one report per line to validate deterministic triage without relying on the seeded dataset.
+            </p>
+          </div>
+        </div>
 
-      {/* Load Demo button */}
-      <button
-        onClick={handleLoadDemo}
-        disabled={processing}
-        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all shadow-lg shadow-orange-950/40"
-      >
-        {processing ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Procesando…
-          </>
-        ) : (
-          <>
-            <Play className="w-4 h-4" />
-            🌪️ Cargar Demo Santa Ana
-          </>
-        )}
-      </button>
+        <textarea
+          value={rawMessages}
+          onChange={(e) => setRawMessages(e.target.value)}
+          rows={7}
+          className="mt-4 w-full resize-none rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-sky-400/50"
+          placeholder="One report per line"
+        />
+
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            <AlertCircle className="h-3.5 w-3.5" />
+            <span>{messages.length} messages ready</span>
+          </div>
+          <button
+            onClick={handleQuickProcess}
+            disabled={processing || messages.length === 0}
+            className="flex items-center gap-2 rounded-2xl bg-sky-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-300 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
+            Process text
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
