@@ -20,29 +20,24 @@ FROM node:20-bookworm-slim
 
 WORKDIR /app
 
-ENV PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    NEXT_TELEMETRY_DISABLED=1 \
+ENV NEXT_TELEMETRY_DISABLED=1 \
     PORT=7860 \
     NEXT_PUBLIC_API_URL=/api \
     NEXT_PUBLIC_API_BASE_URL=/api \
-    NEXT_PUBLIC_BACKEND_URL=/api
+    NEXT_PUBLIC_BACKEND_URL=/api \
+    BACKEND_ORIGIN=http://129.212.185.232:8080
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3 python3-pip nginx ca-certificates \
+    && apt-get install -y --no-install-recommends nginx ca-certificates gettext-base \
     && rm -rf /var/lib/apt/lists/*
 
-COPY backend/requirements.txt /app/backend/requirements.txt
-RUN python3 -m pip install --break-system-packages -r /app/backend/requirements.txt
-
-COPY backend/ /app/backend/
 COPY --from=frontend-builder /app/frontend /app/frontend
-COPY nginx.space.conf /etc/nginx/conf.d/default.conf
+COPY nginx.space.conf.template /etc/nginx/templates/default.conf.template
 COPY scripts/start_hf_space.sh /usr/local/bin/start_hf_space.sh
 
 RUN chmod +x /usr/local/bin/start_hf_space.sh \
     && rm -f /etc/nginx/sites-enabled/default \
-    && mkdir -p /var/cache/nginx /var/run /app/backend/data
+    && mkdir -p /var/cache/nginx /var/run
 
 EXPOSE 7860
 

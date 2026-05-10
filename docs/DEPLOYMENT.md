@@ -7,7 +7,7 @@
   - FastAPI backend on `0.0.0.0:8080`
 - Hugging Face Docker Space:
   - public entrypoint on `7860`
-  - same-origin `/api` proxy to the internal FastAPI process in the Space container
+  - same-origin `/api` proxy to the AMD FastAPI backend
 
 The browser should never call the AMD Qwen endpoint directly.
 
@@ -24,7 +24,7 @@ Bootstrap the backend:
 
 ```bash
 bash scripts/deploy_backend_amd.sh
-cp backend/.env.example backend/.env
+cp backend/.env.amd.example backend/.env
 ```
 
 Edit `backend/.env`:
@@ -38,12 +38,12 @@ CORS_ORIGINS=https://YOUR_SPACE.hf.space
 
 QWEN_ENABLED=true
 QWEN_BASE_URL=http://127.0.0.1:8000/v1
-QWEN_API_KEY=your-qwen-key
+QWEN_API_KEY=amd-qwen-demo-key
 QWEN_MODEL=Qwen/Qwen2-7B-Instruct
 
 ADMIN_USERNAME=admin
-ADMIN_PASSWORD=change-me-in-production
-ADMIN_TOKEN_SECRET=change-me-random-secret
+ADMIN_PASSWORD=admin123
+ADMIN_TOKEN_SECRET=relieflens-demo-secret-change-this
 ADMIN_TOKEN_EXPIRE_MINUTES=720
 ```
 
@@ -52,7 +52,7 @@ Start the backend:
 ```bash
 bash scripts/start_backend_amd.sh
 curl http://127.0.0.1:8080/health
-curl http://YOUR_AMD_PUBLIC_IP:8080/health
+curl http://129.212.185.232:8080/health
 ```
 
 ## 2. AMD Qwen endpoint
@@ -61,7 +61,7 @@ If Qwen is running on the same VM, verify it:
 
 ```bash
 curl http://127.0.0.1:8000/v1/models \
-  -H "Authorization: Bearer your-qwen-key"
+  -H "Authorization: Bearer amd-qwen-demo-key"
 ```
 
 The backend reads `QWEN_*` at runtime and calls the OpenAI-compatible endpoint internally.
@@ -72,16 +72,10 @@ Use the root `Dockerfile` in this repository.
 
 Space Variables:
 
-- `QWEN_ENABLED=true`
-- `QWEN_BASE_URL=http://AMD_PUBLIC_IP:8000/v1`
-- `QWEN_MODEL=Qwen/Qwen2-7B-Instruct`
 - `NEXT_PUBLIC_API_URL=/api`
 - `NEXT_PUBLIC_API_BASE_URL=/api`
 - `NEXT_PUBLIC_BACKEND_URL=/api`
-
-Space Secret:
-
-- `QWEN_API_KEY`
+- `BACKEND_ORIGIN=http://129.212.185.232:8080`
 
 After pushing the Space repository, validate:
 
@@ -110,6 +104,28 @@ npm run build
 
 ## 5. Notes
 
-- Do not put `QWEN_API_KEY` in frontend code or `NEXT_PUBLIC_*` variables.
+- Do not put `QWEN_API_KEY` in frontend code, Hugging Face Space variables, or any `NEXT_PUBLIC_*` variable.
 - Do not expose the AMD Qwen endpoint directly to the browser.
 - Human review remains required for all operational decisions.
+
+## 6. Final checklist
+
+1. Verify Qwen on AMD:
+   - `curl http://127.0.0.1:8000/v1/models -H "Authorization: Bearer amd-qwen-demo-key"`
+2. Start AMD backend:
+   - `bash scripts/start_backend_amd.sh`
+3. Verify AMD backend locally:
+   - `curl http://127.0.0.1:8080/health`
+4. Verify AMD backend publicly:
+   - `curl http://129.212.185.232:8080/health`
+5. Configure Hugging Face Space variables:
+   - `NEXT_PUBLIC_API_URL=/api`
+   - `NEXT_PUBLIC_API_BASE_URL=/api`
+   - `NEXT_PUBLIC_BACKEND_URL=/api`
+   - `BACKEND_ORIGIN=http://129.212.185.232:8080`
+6. Push to a new Docker Space.
+7. Test:
+   - `https://SPACE.hf.space/health`
+   - `https://SPACE.hf.space/api/demo/incidents`
+   - `https://SPACE.hf.space/emergencies`
+8. Submit the flood report and verify the admin view shows `analysis_provider=qwen`.

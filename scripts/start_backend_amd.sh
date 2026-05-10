@@ -45,3 +45,4 @@ tmux new -d -s "$SESSION_NAME" "cd '$BACKEND_DIR' && source '$VENV_DIR/bin/activ
 log_info "Backend started in tmux session '$SESSION_NAME'"
 log_info "Check logs with: tmux attach -t $SESSION_NAME"
 log_info "Health check: curl http://127.0.0.1:$PORT/health"
+log_info "Public health check: curl http://129.212.185.232:$PORT/health"

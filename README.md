@@ -5,7 +5,7 @@ ReliefLens AI is a multimodal, human-in-the-loop emergency triage demo built for
 ## Public demo
 
 - Hugging Face Space frontend: `https://lablab-ai-amd-developer-hackathon-relieflens-frontend.hf.space`
-- AMD FastAPI backend: `http://134.199.203.136:8080`
+- AMD FastAPI backend: `http://129.212.185.232:8080`
 
 ## Application routes
 
@@ -128,9 +128,9 @@ Local development:
 
 Hugging Face Space deployment:
 
-`Hugging Face Docker Space -> nginx on :7860 -> Next.js frontend + FastAPI backend -> external AMD Qwen OpenAI-compatible endpoint`
+`Hugging Face Docker Space -> nginx on :7860 -> Next.js frontend -> AMD FastAPI backend -> AMD Qwen OpenAI-compatible endpoint`
 
-The browser does not call `localhost:8080`, `127.0.0.1:8080`, or the AMD public IP directly from client-side code. Local frontend requests use `/backend`. The Hugging Face Space build uses same-origin `/api`, which nginx proxies to the internal FastAPI backend.
+The browser does not call `localhost:8080`, `127.0.0.1:8080`, the AMD FastAPI public IP, or the AMD Qwen endpoint directly from client-side code. Local frontend requests use `/backend`. The Hugging Face Space build uses same-origin `/api`, which nginx proxies to the AMD FastAPI backend at runtime.
 
 ## Backend endpoints
 
@@ -236,12 +236,12 @@ CORS_ORIGINS=https://YOUR_SPACE.hf.space
 
 QWEN_ENABLED=true
 QWEN_BASE_URL=http://127.0.0.1:8000/v1
-QWEN_API_KEY=your-qwen-key
+QWEN_API_KEY=amd-qwen-demo-key
 QWEN_MODEL=Qwen/Qwen2-7B-Instruct
 
 ADMIN_USERNAME=admin
-ADMIN_PASSWORD=change-me-in-production
-ADMIN_TOKEN_SECRET=change-me-random-secret
+ADMIN_PASSWORD=admin123
+ADMIN_TOKEN_SECRET=relieflens-demo-secret-change-this
 ADMIN_TOKEN_EXPIRE_MINUTES=720
 ```
 
@@ -250,13 +250,13 @@ Then start the backend:
 ```bash
 bash scripts/start_backend_amd.sh
 curl http://127.0.0.1:8080/health
-curl http://YOUR_AMD_PUBLIC_IP:8080/health
+curl http://129.212.185.232:8080/health
 ```
 
 If Qwen is running separately on the same VM, verify it first:
 
 ```bash
-curl http://127.0.0.1:8000/v1/models -H "Authorization: Bearer your-qwen-key"
+curl http://127.0.0.1:8000/v1/models -H "Authorization: Bearer amd-qwen-demo-key"
 ```
 
 ## Deployment to Hugging Face Docker Space
@@ -265,38 +265,32 @@ The repository now includes a root `Dockerfile` for a single Hugging Face Docker
 
 Container behavior:
 
-- FastAPI backend runs internally on `127.0.0.1:8080`
 - Next.js frontend runs internally on `127.0.0.1:3000`
 - `nginx` exposes only port `7860`
 - `/` routes to the Next.js frontend
-- `/api/*` routes to the FastAPI backend
-- `/backend/*` is also proxied to the backend for compatibility with the older frontend path layout
+- `/api/*` routes to the AMD FastAPI backend via `BACKEND_ORIGIN`
+- `/health` routes to `${BACKEND_ORIGIN}/health`
 
 Public browser behavior:
 
 - the browser calls same-origin `/api` in the Hugging Face Space build
 - no Qwen secret is exposed to the frontend bundle
-- the backend reads `QWEN_*` variables at runtime inside the container
+- the Space does not call Qwen directly
+- Qwen credentials stay only on the AMD backend environment
 
 Space variables:
 
-- `QWEN_ENABLED=true`
-- `QWEN_BASE_URL=http://AMD_PUBLIC_IP:8000/v1`
-- `QWEN_MODEL=Qwen/Qwen2-7B-Instruct`
 - `NEXT_PUBLIC_API_URL=/api`
 - `NEXT_PUBLIC_API_BASE_URL=/api`
 - `NEXT_PUBLIC_BACKEND_URL=/api`
+- `BACKEND_ORIGIN=http://129.212.185.232:8080`
 
-Space secrets:
-
-- `QWEN_API_KEY`
-
-Do not put `QWEN_API_KEY`, admin credentials, or token secrets in any `NEXT_PUBLIC_*` variable.
+Do not put `QWEN_API_KEY`, admin credentials, or token secrets in any `NEXT_PUBLIC_*` variable or Hugging Face frontend variable.
 
 Build and push flow:
 
 1. Push this repository to the Hugging Face Space repo.
-2. Configure the Space variables and secret above.
+2. Configure the Space variables above.
 3. Wait for the Docker build to finish.
 4. Test:
    - `https://YOUR_SPACE.hf.space/health`
@@ -310,47 +304,47 @@ Deployment flow:
 1. Create a Docker Space on Hugging Face.
 2. Push this repository root to the Space repository.
 3. Configure these Variables:
-   - `QWEN_ENABLED=true`
-   - `QWEN_BASE_URL=http://AMD_PUBLIC_IP:8000/v1`
-   - `QWEN_MODEL=Qwen/Qwen2-7B-Instruct`
    - `NEXT_PUBLIC_API_URL=/api`
    - `NEXT_PUBLIC_API_BASE_URL=/api`
    - `NEXT_PUBLIC_BACKEND_URL=/api`
-4. Configure this Secret:
-   - `QWEN_API_KEY`
-5. Wait for the Docker build.
-6. Validate:
+   - `BACKEND_ORIGIN=http://129.212.185.232:8080`
+4. Wait for the Docker build.
+5. Validate:
    - `https://YOUR_SPACE.hf.space/health`
    - `https://YOUR_SPACE.hf.space/api/demo/incidents`
    - `https://YOUR_SPACE.hf.space/admin/login`
 
 ## Hugging Face Space + AMD Qwen Deployment
 
-This deployment mode keeps Qwen external on AMD infrastructure while Hugging Face hosts the public UI and API gateway container.
+This deployment mode keeps both Qwen and FastAPI on AMD infrastructure while Hugging Face hosts only the public UI and reverse proxy.
 
 Architecture:
 
-`Hugging Face Docker Space -> nginx on :7860 -> Next.js on :3000 + FastAPI on :8080 -> AMD Qwen OpenAI-compatible endpoint`
+`Hugging Face Docker Space -> nginx on :7860 -> Next.js on :3000 -> AMD FastAPI on :8080 -> AMD Qwen OpenAI-compatible endpoint`
 
-Recommended AMD Qwen runtime variables for the Space:
+Required AMD backend runtime variables:
 
 - `QWEN_ENABLED=true`
-- `QWEN_BASE_URL=http://AMD_PUBLIC_IP:8000/v1`
+- `QWEN_BASE_URL=http://127.0.0.1:8000/v1`
 - `QWEN_MODEL=Qwen/Qwen2-7B-Instruct`
+- `QWEN_API_KEY=amd-qwen-demo-key`
 
-Required Hugging Face Space secret:
+Required Hugging Face Space variables:
 
-- `QWEN_API_KEY`
+- `NEXT_PUBLIC_API_URL=/api`
+- `NEXT_PUBLIC_API_BASE_URL=/api`
+- `NEXT_PUBLIC_BACKEND_URL=/api`
+- `BACKEND_ORIGIN=http://129.212.185.232:8080`
 
 Optional local Docker smoke test before pushing to Hugging Face:
 
 ```bash
 docker build -t relieflens-space .
 docker run --rm -p 7860:7860 \
-  -e QWEN_ENABLED=true \
-  -e QWEN_BASE_URL=http://AMD_PUBLIC_IP:8000/v1 \
-  -e QWEN_MODEL=Qwen/Qwen2-7B-Instruct \
-  -e QWEN_API_KEY=your-secret \
+  -e NEXT_PUBLIC_API_URL=/api \
+  -e NEXT_PUBLIC_API_BASE_URL=/api \
+  -e NEXT_PUBLIC_BACKEND_URL=/api \
+  -e BACKEND_ORIGIN=http://129.212.185.232:8080 \
   relieflens-space
 ```
 
@@ -359,6 +353,28 @@ Then test:
 - `http://localhost:7860/health`
 - `http://localhost:7860/api/demo/incidents`
 - `http://localhost:7860/admin/login`
+
+## Final deployment checklist
+
+1. Verify Qwen on AMD:
+   - `curl http://127.0.0.1:8000/v1/models -H "Authorization: Bearer amd-qwen-demo-key"`
+2. Start AMD backend:
+   - `bash scripts/start_backend_amd.sh`
+3. Verify AMD backend locally:
+   - `curl http://127.0.0.1:8080/health`
+4. Verify AMD backend publicly:
+   - `curl http://129.212.185.232:8080/health`
+5. Configure Hugging Face Space variables:
+   - `NEXT_PUBLIC_API_URL=/api`
+   - `NEXT_PUBLIC_API_BASE_URL=/api`
+   - `NEXT_PUBLIC_BACKEND_URL=/api`
+   - `BACKEND_ORIGIN=http://129.212.185.232:8080`
+6. Push to a new Docker Space.
+7. Test:
+   - `https://SPACE.hf.space/health`
+   - `https://SPACE.hf.space/api/demo/incidents`
+   - `https://SPACE.hf.space/emergencies`
+8. Submit the seeded flood report and verify the admin dashboard shows `analysis_provider=qwen`.
 
 ## Known limitations
 

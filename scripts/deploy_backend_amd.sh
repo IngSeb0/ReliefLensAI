@@ -52,9 +52,14 @@ python -m pip install --upgrade pip
 python -m pip install -r "$BACKEND_DIR/requirements.txt"
 
 if [[ ! -f "$BACKEND_DIR/.env" ]]; then
-  log_info "Creating backend/.env from backend/.env.example"
-  cp "$BACKEND_DIR/.env.example" "$BACKEND_DIR/.env"
-  log_info "Edit backend/.env with AMD Qwen and admin credentials before starting the service"
+  if [[ -f "$BACKEND_DIR/.env.amd.example" ]]; then
+    log_info "Creating backend/.env from backend/.env.amd.example"
+    cp "$BACKEND_DIR/.env.amd.example" "$BACKEND_DIR/.env"
+  else
+    log_info "Creating backend/.env from backend/.env.example"
+    cp "$BACKEND_DIR/.env.example" "$BACKEND_DIR/.env"
+  fi
+  log_info "Edit backend/.env if you need to customize the Space origin or admin credentials before starting the service"
 fi
 
 mkdir -p "$BACKEND_DIR/data"
