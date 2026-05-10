@@ -10,8 +10,9 @@ from typing import Any, Dict, List
 from fastapi import APIRouter, File, HTTPException, Form, UploadFile
 
 from schemas.report import ReportInput, ReportType, UploadBatch
-from services.evidence_analyzer import analyze_evidence
+from services.evidence_analyzer import build_incident_record, public_incident_response
 from services.pipeline import Pipeline
+from services.storage import get_storage
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/demo", tags=["demo"])
@@ -53,28 +54,33 @@ _DEMO_INCIDENTS: List[Dict[str, Any]] = [
     {
         "incident_id": "demo-flood-roadway",
         "incident_type": "flood",
-        "title": "Flooded roadway blocking neighborhood access",
-        "summary": "Road surface is submerged and vehicle access is restricted along the main connector route.",
-        "severity": "high",
-        "priority": "P1",
+        "title": "Critical flash flood in residential area",
+        "summary": "Flooded urban street, muddy water reaching residential entrances, stuck cars, and people moving to higher ground. Water level may be rising quickly near occupied buildings.",
+        "severity": "critical",
+        "priority": "P0",
+        "analysis_provider": "qwen",
+        "life_safety_risk": True,
+        "detected_risks": ["rising flood water", "possible trapped occupants", "blocked roadway access"],
+        "evidence_summary": "A severe flash flood is affecting a residential area with trapped vehicles and possible building entrapment risk.",
+        "analysis_admin_notes": "Prioritize life-safety verification, road closure status, and rooftop or building access checks.",
         "location": {
             "lat": 33.7542,
             "lng": -117.8549,
-            "label": "Main connector road, Santa Ana demo zone",
-            "source": "text_location",
-            "confidence": 0.6,
+            "label": "Residential flood corridor, Santa Ana demo zone",
+            "source": "browser_geolocation",
+            "confidence": 0.9,
         },
         "evidence": {
-            "image": {"filename": "flooded-road.jpg", "content_type": "image/jpeg", "size_bytes": 214000, "exif_gps_found": False},
-            "audio": {"filename": None, "content_type": None, "size_bytes": None, "transcript": None, "status": None},
-            "text": {"report_text": "Flooded access road with stranded vehicles.", "location_text": "Santa Ana access road"},
+            "image": {"filename": "flooded-road.jpg", "content_type": "image/jpeg", "size_bytes": 214000, "exif_gps_found": False, "findings": "Flooded urban street, muddy water reaching residential entrances, stuck cars, people moving to higher ground."},
+            "audio": {"filename": None, "content_type": None, "size_bytes": None, "transcript": "No audio uploaded.", "status": None},
+            "text": {"report_text": "A severe flash flood is affecting a residential area. Streets are partially flooded, several vehicles are stuck, and people may be trapped inside nearby buildings. Water level appears to be rising quickly after heavy rainfall.", "location_text": "Santa Ana residential flood corridor"},
         },
         "evidence_findings": [
-            "Rule-based fallback analysis matched flood or water-impact indicators.",
-            "Access and safety conditions should be validated by a human operator.",
+            "Evidence indicates severe flash flooding affecting road access and nearby residences.",
+            "Possible trapped occupants and rising water require immediate human review.",
         ],
         "recommended_resources": ["Flood response crew", "Water rescue vehicle", "Road access control"],
-        "confidence": 0.82,
+        "confidence": 0.93,
         "human_review_required": True,
         "safety_note": _SAFETY_NOTE,
         "updated_at": "2026-05-09T10:18:00Z",
@@ -144,7 +150,7 @@ async def analyze_image(
     image_bytes = await image.read()
     location_source = "map_click" if lat is not None and lng is not None else None
 
-    return analyze_evidence(
+    incident = await build_incident_record(
         report_text=report_text,
         location_text=location_text,
         image_filename=image.filename,
@@ -157,6 +163,9 @@ async def analyze_image(
         client_lng=lng,
         location_source=location_source,
     )
+    storage = get_storage()
+    await storage.save_incident(incident["incident_id"], incident)
+    return public_incident_response(incident)
 
 
 @router.post("/run")

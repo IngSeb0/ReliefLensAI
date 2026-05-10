@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import amd, crisis_room, demo, evidence, incidents, reports
+from api.routes import admin, amd, crisis_room, demo, evidence, incidents, reports
 from core.config import get_settings
 
 logging.basicConfig(
@@ -48,6 +48,7 @@ app.include_router(incidents.router, prefix="/api")
 app.include_router(amd.router, prefix="/api")
 app.include_router(demo.router, prefix="/api")
 app.include_router(evidence.router, prefix="/api")
+app.include_router(admin.router, prefix="/api")
 
 
 @app.get("/health", tags=["health"])
